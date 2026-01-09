@@ -47,16 +47,12 @@ def analyze_document():
         if not os.path.exists(file_path):
             return {"error": "Uploaded file not found on server."}
 
-        # Step 1: OCR
         extracted_text = extract_text(file_path)
 
-        # Step 2: LLM
         raw_output = analyze_lease(extracted_text)
 
-        # Step 3: Clean markdown
         cleaned = re.sub(r"```json|```", "", raw_output).strip()
 
-        # Step 4: Convert to JSON
         parsed_json = json.loads(cleaned)
 
         return {
@@ -70,3 +66,4 @@ def analyze_document():
             "error": "Processing failed",
             "details": str(e)
         }
+
