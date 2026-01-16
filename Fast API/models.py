@@ -9,4 +9,8 @@ class LeaseAnalysis(Base):
     filename = Column(String(255))
     analysis_result = Column(JSON)
     fairness_analysis = Column(JSON)
+
+    vin = Column(String(17))
+    vehicle_api_data = Column(JSON)
+
     created_at = Column(DateTime, default=datetime.utcnow)
