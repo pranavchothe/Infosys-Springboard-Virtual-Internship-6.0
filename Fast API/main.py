@@ -6,8 +6,6 @@ import os
 from ocr_utils import extract_text
 from llm_utils import analyze_lease
 from fairness_utils import calculate_fairness
-
-# NEW IMPORTS
 from database import SessionLocal, engine
 from models import LeaseAnalysis
 from sqlalchemy.orm import Session
@@ -66,7 +64,7 @@ def analyze_document(db: Session = Depends(get_db)):
         if not os.path.exists(file_path):
             return {"error": "Uploaded file not found on server."}
 
-        # 1️⃣ CHECK IF FILE ALREADY EXISTS IN DATABASE
+        # CHECK IF FILE ALREADY EXISTS IN DATABASE
         existing_record = db.query(LeaseAnalysis)\
                             .filter(LeaseAnalysis.filename == LAST_UPLOADED_FILE)\
                             .first()
@@ -80,18 +78,18 @@ def analyze_document(db: Session = Depends(get_db)):
                 "fairness_analysis": existing_record.fairness_analysis
             }
 
-        # 2️⃣ OCR
+        # OCR
         extracted_text = extract_text(file_path)
 
-        # 3️⃣ LLM Analysis
+        # LLM Analysis
         raw_output = analyze_lease(extracted_text)
         cleaned = re.sub(r"```json|```", "", raw_output).strip()
         parsed_json = json.loads(cleaned)
 
-        # 4️⃣ Fairness / SLA Evaluation
+        # Fairness / SLA Evaluation
         fairness_result = calculate_fairness(parsed_json)
 
-        # 5️⃣ STORE IN MYSQL
+        # STORE IN MYSQL
         record = LeaseAnalysis(
             filename=LAST_UPLOADED_FILE,
             analysis_result=parsed_json,
@@ -115,3 +113,4 @@ def analyze_document(db: Session = Depends(get_db)):
             "error": "Processing failed",
             "details": str(e)
         }
+
