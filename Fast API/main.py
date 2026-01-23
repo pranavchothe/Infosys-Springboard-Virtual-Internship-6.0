@@ -1,24 +1,43 @@
-from fastapi import FastAPI, File, UploadFile
+from email.mime import text
+from fastapi import FastAPI, File, UploadFile, Depends, HTTPException, status
 import re
 import json
 import shutil
 import os
+from fastapi.middleware.cors import CORSMiddleware
+from auth import router as auth_router
+from sqlalchemy.orm import Session
+from datetime import datetime
+from llm_utils import analyze_lease
+from database import SessionLocal, engine, Base
+from models import User, LeaseAnalysis
+from auth import get_current_user
+
 from ocr_utils import extract_text
 from llm_utils import analyze_lease
 from fairness_utils import calculate_fairness
-from database import SessionLocal, engine
-from models import LeaseAnalysis
-from sqlalchemy.orm import Session
 from vin_utils import decode_vin
 
+
 # Create DB tables
-from database import Base
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Lease Document Analyzer API")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],   # allow all for dev
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
+
+
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 LAST_UPLOADED_FILE = None
 
 
@@ -42,115 +61,200 @@ def get_db():
     finally:
         db.close()
 
+
 @app.get("/")
 def root():
     return {"message": "Lease Document Analyzer API is running"}
 
-@app.post("/upload/")
-async def upload_document(file: UploadFile = File(...)):
-    global LAST_UPLOADED_FILE
 
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
+# ✅ FINAL /upload WITH ALL REQUIRED STEPS INCLUDED (DEDUP + VIN + FAIRNESS + CACHE)
 
+@app.post("/upload")
+def upload_file(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # Save file uniquely
+    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    unique_filename = f"{current_user.id}_{timestamp}_{file.filename}"
+    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+
+    # 1. SAVE FILE FIRST (THIS WAS WRONG BEFORE)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    LAST_UPLOADED_FILE = file.filename 
+    original_filename = file.filename
 
-    return {
-        "filename": file.filename,
-        "status": "uploaded successfully"
-    }
+    # 2. EXTRACT TEXT USING OCR UTILS
+    extracted_text = extract_text(file_path)
 
-from fastapi import Depends
-from sqlalchemy.orm import Session
+    print("EXTRACTED TEXT LENGTH:", len(extracted_text) if extracted_text else "NO TEXT")
 
-@app.get("/analyze/")
-def analyze_document(db: Session = Depends(get_db)):
-    try:
-        global LAST_UPLOADED_FILE
+    if not extracted_text or len(extracted_text.strip()) == 0:
+        raise HTTPException(status_code=400, detail="No text extracted from PDF")
 
-        if not LAST_UPLOADED_FILE:
-            return {"error": "No file uploaded yet. Please upload a file first."}
-
-        file_path = os.path.join(UPLOAD_DIR, LAST_UPLOADED_FILE)
-
-        if not os.path.exists(file_path):
-            return {"error": "Uploaded file not found on server."}
-
-        # CHECK IF FILE ALREADY EXISTS IN DATABASE
-        existing_record = db.query(LeaseAnalysis)\
-                            .filter(LeaseAnalysis.filename == LAST_UPLOADED_FILE)\
-                            .first()
-
-        # OCR
-        extracted_text = extract_text(file_path)
-
-        # LLM Analysis
-        raw_output = analyze_lease(extracted_text)
-        cleaned = re.sub(r"```json|```", "", raw_output).strip()
-        parsed_json = json.loads(cleaned)
-
-       # Extract VIN from LLM output
-        vehicle_section = parsed_json.get("vehicle_details", {})
-        vin = vehicle_section.get("vehicle_id_number")
-
-        # Fallback: Extract VIN directly from OCR text if LLM missed it
-        if not vin:
-            vin = extract_vin_from_text(extracted_text)
-
-        # Validate VIN length (must be exactly 17)
-        if vin and len(vin) != 17:
-            print("⚠️ Extracted value is not a valid VIN, ignoring:", vin)
-            vin = None
-
-
-        vehicle_api_data = None
-
-        if vin:
-            try:
-                vehicle_api_data = decode_vin(vin)
-            except Exception as e:
-                vehicle_api_data = {"error": f"VIN decoding failed: {str(e)}"}
-
-        # IF SAME FILE EXISTS WITH SAME VIN → RETURN STORED DATA
-        if existing_record and existing_record.vin == vin:
-            return {
-                "message": "Existing analysis with VIN data found",
-                "record_id": existing_record.id,
-                "filename": existing_record.filename,
-                "analysis_result": existing_record.analysis_result,
-                "fairness_analysis": existing_record.fairness_analysis,
-                "vehicle_api_data": existing_record.vehicle_api_data
-            }
-
-        # Fairness / SLA Evaluation
-        fairness_result = calculate_fairness(parsed_json)
-
-        # STORE IN MYSQL
-        record = LeaseAnalysis(
-            filename=LAST_UPLOADED_FILE,
-            analysis_result=parsed_json,
-            fairness_analysis=fairness_result,
-            vin=vin,
-            vehicle_api_data=vehicle_api_data
+    # 🔁 CHECK IF FILE ALREADY EXISTS FOR THIS USER
+    existing_record = (
+        db.query(LeaseAnalysis)
+        .filter(
+            LeaseAnalysis.filename == original_filename,
+            LeaseAnalysis.user_id == current_user.id
         )
+        .first()
+    )
 
-        db.add(record)
-        db.commit()
-        db.refresh(record)
-
+    if existing_record:
         return {
-            "message": "SLA analysis completed and stored in database",
-            "record_id": record.id,
-            "filename": LAST_UPLOADED_FILE,
-            "analysis_result": parsed_json,
-            "fairness_analysis": fairness_result,
-            "vehicle_api_data": vehicle_api_data
+            "message": "Existing analysis found",
+            "record_id": existing_record.id,
+            "filename": existing_record.filename,
+            "vin": existing_record.vin,
+            "analysis_result": existing_record.analysis_result,
+            "fairness_analysis": existing_record.fairness_analysis,
+            "vehicle_api_data": existing_record.vehicle_api_data
         }
+
+    # 3. 🤖 CALL GROQ ONCE (USING YOUR analyze_lease)
+    print("====== OCR EXTRACTED TEXT (FIRST 2000 CHARS) ======")
+    print(extracted_text[:2000])
+    print("====== END OCR TEXT ======")
+
+    raw_output = analyze_lease(extracted_text)
+
+    print("====== GROQ RAW OUTPUT ======")
+    print(raw_output)
+    print("====== END GROQ OUTPUT ======")
+
+
+    print("GROQ RAW RESPONSE:", raw_output)
+
+    if not raw_output:
+        raise HTTPException(status_code=500, detail="Groq returned empty response")
+
+    # 4. CLEAN & PARSE JSON
+    cleaned = re.sub(r"```json|```", "", raw_output).strip()
+
+    try:
+        parsed_json = json.loads(cleaned)
+        # 🔄 MAP STRUCTURED JSON → SIMPLE FIELDS FOR FLUTTER
+
+        # Build summary from important fields
+        lease_details = parsed_json.get("lease_details", {})
+        financials = parsed_json.get("financials", {})
+        penalties = parsed_json.get("penalties", {})
+
+        summary_parts = []
+
+        if lease_details.get("start_date"):
+            summary_parts.append(f"Lease starts on {lease_details.get('start_date')}")
+
+        if lease_details.get("end_date"):
+            summary_parts.append(f"and ends on {lease_details.get('end_date')}")
+
+        if lease_details.get("lease_duration"):
+            summary_parts.append(f"for a duration of {lease_details.get('lease_duration')}")
+
+        summary = " ".join(summary_parts) if summary_parts else None
+
+        monthly_payment = financials.get("total_monthly_payment") or financials.get("base_monthly_payment")
+
+        # Build potential issues list from penalties
+        issues = []
+        for k, v in penalties.items():
+            if v:
+                issues.append(f"{k.replace('_', ' ').title()}: {v}")
+
+        # Simple negotiation tips (rule-based for now)
+        negotiation_tips = []
+
+        if monthly_payment:
+            negotiation_tips.append("Ask if the monthly payment can be reduced or fixed.")
+
+        if financials.get("residual_value"):
+            negotiation_tips.append("Negotiate the residual value at the end of lease.")
+
+        if penalties.get("early_termination_charge"):
+            negotiation_tips.append("Try to reduce early termination charges.")
+
+        print("MAPPED SUMMARY:", summary)
+        print("MAPPED MONTHLY PAYMENT:", monthly_payment)
+        print("MAPPED ISSUES:", issues)
+        print("MAPPED NEGOTIATION TIPS:", negotiation_tips)
 
     except Exception as e:
-        return {
-            "error": "Processing failed",
-            "details": str(e)
+        print("JSON PARSE ERROR:", e)
+        print("RAW GROQ:", raw_output)
+        raise HTTPException(status_code=500, detail="Groq returned invalid JSON")
+
+    # 5. 🚗 EXTRACT VIN
+    vehicle_section = parsed_json.get("vehicle_details", {})
+    vin = vehicle_section.get("vehicle_id_number")
+
+    # Fallback: extract VIN from OCR text
+    if not vin:
+        vin = extract_vin_from_text(extracted_text)
+
+    # Validate VIN
+    if vin and len(vin) != 17:
+        vin = None
+
+    # 6. 🚘 DECODE VIN
+    vehicle_api_data = None
+    if vin:
+        try:
+            vehicle_api_data = decode_vin(vin)
+        except Exception as e:
+            vehicle_api_data = {"error": str(e)}
+
+    # 7. ⚖️ FAIRNESS
+    fairness_result = calculate_fairness(parsed_json)
+
+    # 8. 💾 STORE IN DB
+    record = LeaseAnalysis(
+        user_id=current_user.id,
+        filename=original_filename,
+        stored_filename=unique_filename,
+        analysis_result=parsed_json,
+        fairness_analysis=fairness_result,
+        vin=vin,
+        vehicle_api_data=vehicle_api_data,
+    )
+
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+
+    # 9. RETURN TO FLUTTER
+    return {
+        "message": "Lease analysis completed and stored",
+        "record_id": record.id,
+        "filename": original_filename,
+        "vin": vin,
+        "analysis_result": parsed_json,
+        "fairness_analysis": fairness_result,
+        "vehicle_api_data": vehicle_api_data
+    }
+
+# 🔐 JWT protected history
+@app.get("/history")
+def get_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    records = (
+        db.query(LeaseAnalysis)
+        .filter(LeaseAnalysis.user_id == current_user.id)
+        .order_by(LeaseAnalysis.created_at.desc())
+        .all()
+    )
+
+    return [
+        {
+            "filename": r.filename,
+            "analysis_result": r.analysis_result,
+            "fairness_analysis": r.fairness_analysis,
+            "created_at": r.created_at.isoformat(),
         }
+        for r in records
+    ]

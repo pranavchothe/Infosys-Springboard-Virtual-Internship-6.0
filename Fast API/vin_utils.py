@@ -1,7 +1,7 @@
 import requests
 
 def decode_vin(vin: str) -> dict:
-    print("🔍 decode_vin() CALLED WITH:", vin)
+    print("decode_vin() CALLED WITH:", vin)
 
     url = f"https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVin/{vin}?format=json"
     response = requests.get(url, timeout=10)

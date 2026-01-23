@@ -22,15 +22,15 @@ CRITICAL RULES:
 Return exactly this structure:
 
 {{
-  "1.parties": {{"lessor": null, "lessee": null}},
-  "2.lease_details": {{
+  "parties": {{"lessor": null, "lessee": null}},
+  "lease_details": {{
     "lease_duration": null,
     "start_date": null,
     "end_date": null,
     "rent_amount": null,
     "payment_terms": null
   }},
-  "3.vehicle_details": {{
+  "vehicle_details": {{
     "maker": null,
     "model": null,
     "year": null,
@@ -39,7 +39,7 @@ Return exactly this structure:
     "vehicle_id_number": null,
     "registration_number": null
   }},
-  "4.financials": {{
+  "financials": {{
     "base_monthly_payment": null,
     "monthly_tax": null,
     "total_monthly_payment": null,
@@ -47,12 +47,12 @@ Return exactly this structure:
     "residual_value": null,
     "purchase_option_price": null
   }},
-  "5.penalties": {{
+  "penalties": {{
     "early_termination_charge": null,
     "late_payment_fee": null,
     "excess_wear_charges": null
   }},
-  "6.termination_clause": null
+  "termination_clause": null
 }}
 
 Document text:
