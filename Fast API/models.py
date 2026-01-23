@@ -16,8 +16,8 @@ class LeaseAnalysis(Base):
     __tablename__ = "lease_analyses"
 
     id = Column(Integer, primary_key=True, index=True)
-    filename = Column(String(255), nullable=False)        # original filename
-    stored_filename = Column(String(255), nullable=True) # ✅ ADD THIS LINE
+    filename = Column(String(255), nullable=False)       
+    stored_filename = Column(String(255), nullable=True) 
 
     analysis_result = Column(JSON)
     fairness_analysis = Column(JSON)
@@ -27,4 +27,5 @@ class LeaseAnalysis(Base):
     vehicle_api_data = Column(JSON, nullable=True)
 
     user_id = Column(Integer, ForeignKey("users.id"))
+
     user = relationship("User", back_populates="leases")
