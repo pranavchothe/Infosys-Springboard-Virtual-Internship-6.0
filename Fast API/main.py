@@ -67,8 +67,6 @@ def root():
     return {"message": "Lease Document Analyzer API is running"}
 
 
-# ✅ FINAL /upload WITH ALL REQUIRED STEPS INCLUDED (DEDUP + VIN + FAIRNESS + CACHE)
-
 @app.post("/upload")
 def upload_file(
     file: UploadFile = File(...),
@@ -80,13 +78,12 @@ def upload_file(
     unique_filename = f"{current_user.id}_{timestamp}_{file.filename}"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
 
-    # 1. SAVE FILE FIRST (THIS WAS WRONG BEFORE)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     original_filename = file.filename
 
-    # 2. EXTRACT TEXT USING OCR UTILS
+    #  EXTRACT TEXT USING OCR UTILS
     extracted_text = extract_text(file_path)
 
     print("EXTRACTED TEXT LENGTH:", len(extracted_text) if extracted_text else "NO TEXT")
@@ -94,7 +91,7 @@ def upload_file(
     if not extracted_text or len(extracted_text.strip()) == 0:
         raise HTTPException(status_code=400, detail="No text extracted from PDF")
 
-    # 🔁 CHECK IF FILE ALREADY EXISTS FOR THIS USER
+    # CHECK IF FILE ALREADY EXISTS FOR THIS USER
     existing_record = (
         db.query(LeaseAnalysis)
         .filter(
@@ -115,7 +112,7 @@ def upload_file(
             "vehicle_api_data": existing_record.vehicle_api_data
         }
 
-    # 3. 🤖 CALL GROQ ONCE (USING YOUR analyze_lease)
+    #  CALL GROQ ONCE (USING YOUR analyze_lease)
     print("====== OCR EXTRACTED TEXT (FIRST 2000 CHARS) ======")
     print(extracted_text[:2000])
     print("====== END OCR TEXT ======")
@@ -132,12 +129,11 @@ def upload_file(
     if not raw_output:
         raise HTTPException(status_code=500, detail="Groq returned empty response")
 
-    # 4. CLEAN & PARSE JSON
+    #  CLEAN & PARSE JSON
     cleaned = re.sub(r"```json|```", "", raw_output).strip()
 
     try:
-        parsed_json = json.loads(cleaned)
-        # 🔄 MAP STRUCTURED JSON → SIMPLE FIELDS FOR FLUTTER
+        parsed_json = json.loads(cleaned
 
         # Build summary from important fields
         lease_details = parsed_json.get("lease_details", {})
@@ -187,7 +183,7 @@ def upload_file(
         print("RAW GROQ:", raw_output)
         raise HTTPException(status_code=500, detail="Groq returned invalid JSON")
 
-    # 5. 🚗 EXTRACT VIN
+    #  EXTRACT VIN
     vehicle_section = parsed_json.get("vehicle_details", {})
     vin = vehicle_section.get("vehicle_id_number")
 
@@ -199,7 +195,7 @@ def upload_file(
     if vin and len(vin) != 17:
         vin = None
 
-    # 6. 🚘 DECODE VIN
+    # DECODE VIN
     vehicle_api_data = None
     if vin:
         try:
@@ -207,10 +203,10 @@ def upload_file(
         except Exception as e:
             vehicle_api_data = {"error": str(e)}
 
-    # 7. ⚖️ FAIRNESS
+    # 7FAIRNESS
     fairness_result = calculate_fairness(parsed_json)
 
-    # 8. 💾 STORE IN DB
+    # STORE IN DB
     record = LeaseAnalysis(
         user_id=current_user.id,
         filename=original_filename,
@@ -225,7 +221,7 @@ def upload_file(
     db.commit()
     db.refresh(record)
 
-    # 9. RETURN TO FLUTTER
+    # RETURN TO FLUTTER
     return {
         "message": "Lease analysis completed and stored",
         "record_id": record.id,
@@ -236,7 +232,7 @@ def upload_file(
         "vehicle_api_data": vehicle_api_data
     }
 
-# 🔐 JWT protected history
+# JWT protected history
 @app.get("/history")
 def get_history(
     db: Session = Depends(get_db),
@@ -258,3 +254,4 @@ def get_history(
         }
         for r in records
     ]
+
