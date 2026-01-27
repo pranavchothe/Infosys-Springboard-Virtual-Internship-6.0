@@ -21,34 +21,33 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Car Lease Analyzer',
       debugShowCheckedModeBanner: false,
-theme: ThemeData(
-  primaryColor: const Color(0xFF5B4BFF),
-  scaffoldBackgroundColor: const Color(0xFFF7F8FC),
-  appBarTheme: const AppBarTheme(
-    backgroundColor: Color(0xFF5B4BFF),
-    foregroundColor: Colors.white,
-    elevation: 0,
-  ),
-  elevatedButtonTheme: ElevatedButtonThemeData(
-    style: ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFF5B4BFF),
-      foregroundColor: Colors.white,
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+      theme: ThemeData(
+        primaryColor: const Color(0xFF5B4BFF),
+        scaffoldBackgroundColor: const Color(0xFFF7F8FC),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF5B4BFF),
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF5B4BFF),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+        ),
       ),
-    ),
-  ),
-  inputDecorationTheme: InputDecorationTheme(
-    filled: true,
-    fillColor: Colors.white,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide.none,
-    ),
-  ),
-),
-
       home: FutureBuilder<Widget>(
         future: _getStartScreen(),
         builder: (context, snapshot) {
