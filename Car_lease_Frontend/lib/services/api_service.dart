@@ -32,7 +32,7 @@ class ApiService {
   return jsonDecode(body);
 } else {
   print("Upload failed: ${response.statusCode}");
-  print("Response body: $body");  
+  print("Response body: $body");   // 🔥 THIS IS CRITICAL
   return null;
 }
 
