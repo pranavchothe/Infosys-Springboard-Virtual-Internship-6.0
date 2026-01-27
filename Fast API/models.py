@@ -27,5 +27,4 @@ class LeaseAnalysis(Base):
     vehicle_api_data = Column(JSON, nullable=True)
 
     user_id = Column(Integer, ForeignKey("users.id"))
-
     user = relationship("User", back_populates="leases")

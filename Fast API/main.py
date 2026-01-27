@@ -17,6 +17,8 @@ from ocr_utils import extract_text
 from llm_utils import analyze_lease
 from fairness_utils import calculate_fairness
 from vin_utils import decode_vin
+from schemas import CarFullHistoryRequest, CarFullHistoryResponse
+from services.car_full_history_service import CarFullHistoryService
 
 
 # Create DB tables
@@ -26,7 +28,7 @@ app = FastAPI(title="Lease Document Analyzer API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # allow all for dev
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,7 +49,7 @@ def extract_vin_from_text(text: str):
     """
     cleaned = text.replace(" ", "").replace("\n", "").upper()
 
-    # VIN pattern: exactly 17 characters, no I O Q
+    
     pattern = r"[A-HJ-NPR-Z0-9]{17}"
     match = re.search(pattern, cleaned)
     return match.group(0) if match else None
@@ -78,19 +80,20 @@ def upload_file(
     unique_filename = f"{current_user.id}_{timestamp}_{file.filename}"
     file_path = os.path.join(UPLOAD_DIR, unique_filename)
 
+    # SAVE FILE FIRST (THIS WAS WRONG BEFORE)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
     original_filename = file.filename
 
-    #  EXTRACT TEXT USING OCR UTILS
+    # EXTRACT TEXT USING OCR UTILS
     extracted_text = extract_text(file_path)
 
     print("EXTRACTED TEXT LENGTH:", len(extracted_text) if extracted_text else "NO TEXT")
 
     if not extracted_text or len(extracted_text.strip()) == 0:
         raise HTTPException(status_code=400, detail="No text extracted from PDF")
-
+    
     # CHECK IF FILE ALREADY EXISTS FOR THIS USER
     existing_record = (
         db.query(LeaseAnalysis)
@@ -129,11 +132,11 @@ def upload_file(
     if not raw_output:
         raise HTTPException(status_code=500, detail="Groq returned empty response")
 
-    #  CLEAN & PARSE JSON
+    # CLEAN & PARSE JSON
     cleaned = re.sub(r"```json|```", "", raw_output).strip()
 
     try:
-        parsed_json = json.loads(cleaned
+        parsed_json = json.loads(cleaned)
 
         # Build summary from important fields
         lease_details = parsed_json.get("lease_details", {})
@@ -183,7 +186,7 @@ def upload_file(
         print("RAW GROQ:", raw_output)
         raise HTTPException(status_code=500, detail="Groq returned invalid JSON")
 
-    #  EXTRACT VIN
+    # EXTRACT VIN
     vehicle_section = parsed_json.get("vehicle_details", {})
     vin = vehicle_section.get("vehicle_id_number")
 
@@ -203,7 +206,7 @@ def upload_file(
         except Exception as e:
             vehicle_api_data = {"error": str(e)}
 
-    # 7FAIRNESS
+    # FAIRNESS
     fairness_result = calculate_fairness(parsed_json)
 
     # STORE IN DB
@@ -232,6 +235,23 @@ def upload_file(
         "vehicle_api_data": vehicle_api_data
     }
 
+
+
+# 🔹 Car Full History API (JWT Protected)
+@app.post("/car-full-history", response_model=CarFullHistoryResponse)
+def get_car_full_history(
+    request: CarFullHistoryRequest,
+    current_user: User = Depends(get_current_user)
+):
+    service = CarFullHistoryService()
+    result = service.fetch_full_history(request.vin)
+    return result
+
+
+
+
+
+
 # JWT protected history
 @app.get("/history")
 def get_history(
@@ -254,4 +274,3 @@ def get_history(
         }
         for r in records
     ]
-
