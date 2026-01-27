@@ -1,12 +1,15 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import '../services/api_service.dart';
-import 'history_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'login_screen.dart';
+import 'car_history_test.dart';
 import 'result_screen.dart';
+import '../services/upload_service.dart';
 
 class UploadScreen extends StatefulWidget {
-  const UploadScreen({super.key});
+  const UploadScreen({Key? key}) : super(key: key);
 
   @override
   State<UploadScreen> createState() => _UploadScreenState();
@@ -15,51 +18,86 @@ class UploadScreen extends StatefulWidget {
 class _UploadScreenState extends State<UploadScreen> {
   Uint8List? fileBytes;
   String? fileName;
-  bool loading = false;
-  String status = "";
 
-  void _pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      withData: true,
+  bool loading = false;
+  String? message;
+
+  final uploadService = UploadService();
+
+  // 🔹 Pick PDF file (Web-safe)
+  Future<void> pickFile() async {
+    final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf', 'docx', 'txt'],
+      allowedExtensions: ['pdf'],
+      withData: true,
     );
 
-    if (result != null) {
+    if (result != null && result.files.single.bytes != null) {
       setState(() {
         fileBytes = result.files.single.bytes;
         fileName = result.files.single.name;
-        status = "Selected: $fileName";
+        message = null;
       });
     }
   }
 
-  void _uploadFile() async {
+  // 🔹 Upload and navigate to ResultScreen
+  Future<void> uploadAndAnalyze() async {
     if (fileBytes == null || fileName == null) {
-      setState(() => status = "Please select a file first.");
+      setState(() {
+        message = "Please select a PDF file first.";
+      });
       return;
     }
 
     setState(() {
       loading = true;
-      status = "Analyzing your lease...";
+      message = null;
     });
 
-    final result =
-        await ApiService().uploadBytes(fileBytes!, fileName!);
+    try {
+      final response = await uploadService.uploadLeaseBytes(
+        fileBytes!,
+        fileName!,
+      );
 
-    setState(() => loading = false);
+      print("UPLOAD RESPONSE: $response");
 
-    if (result != null && mounted) {
+      if (!mounted) return;
+
+      // 🔹 Navigate to your existing ResultScreen
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => ResultScreen(result: result),
+          builder: (_) => ResultScreen(result: response),
         ),
       );
-    } else {
-      setState(() => status = "Upload failed.");
+
+    } catch (e) {
+      setState(() {
+        message = "Upload failed: $e";
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          loading = false;
+        });
+      }
     }
+  }
+
+  // 🔹 Logout
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove("access_token");
+
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
   }
 
   @override
@@ -69,70 +107,90 @@ class _UploadScreenState extends State<UploadScreen> {
         title: const Text("Car Lease Analyzer"),
         actions: [
           IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const HistoryScreen()),
-              );
-            },
+            onPressed: logout,
+            icon: const Icon(Icons.logout),
+            tooltip: "Logout",
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Upload your lease document",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "We’ll extract key terms and negotiation tips.",
-              style: TextStyle(color: Colors.grey),
-            ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
 
-            const SizedBox(height: 24),
-            Card(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.folder_open),
-                      label: const Text("Pick File"),
-                      onPressed: _pickFile,
-                    ),
-                    const SizedBox(height: 12),
-                    if (fileName != null)
-                      Text(
-                        fileName!,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                  ],
+              const Text(
+                "Upload Lease Document",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
                 ),
+                textAlign: TextAlign.center,
               ),
-            ),
 
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.analytics),
-                label: loading
-                    ? const Text("Analyzing...")
-                    : const Text("Analyze Lease"),
-                onPressed: loading ? null : _uploadFile,
+              const SizedBox(height: 24),
+
+              // Pick File Button
+              ElevatedButton.icon(
+                onPressed: pickFile,
+                icon: const Icon(Icons.attach_file),
+                label: const Text("Select PDF File"),
               ),
-            ),
 
-            const SizedBox(height: 16),
-            Text(status, style: const TextStyle(color: Colors.grey)),
-          ],
+              const SizedBox(height: 12),
+
+              // Show selected file name
+              if (fileName != null)
+                Text(
+                  "Selected: $fileName",
+                  textAlign: TextAlign.center,
+                ),
+
+              const SizedBox(height: 20),
+
+              // Upload Button
+              ElevatedButton.icon(
+                onPressed: loading ? null : uploadAndAnalyze,
+                icon: const Icon(Icons.cloud_upload),
+                label: const Text("Upload & Analyze"),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Car History Button
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CarHistoryTestScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.directions_car),
+                label: const Text("Car History"),
+              ),
+
+              const SizedBox(height: 24),
+
+              if (loading)
+                const Center(child: CircularProgressIndicator()),
+
+              const SizedBox(height: 12),
+
+              if (message != null)
+                Text(
+                  message!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: message!.toLowerCase().contains("failed")
+                        ? Colors.red
+                        : Colors.green,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

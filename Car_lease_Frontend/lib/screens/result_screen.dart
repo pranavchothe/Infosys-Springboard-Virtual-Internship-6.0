@@ -8,22 +8,26 @@ class ResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🔹 Force-convert main analysis map
+    // 🔹 Force-convert main analysis map safely
     Map<String, dynamic> analysis = {};
 
     final rawAnalysis = result["analysis_result"];
 
-          if (rawAnalysis is String) {
-          // It is JSON text → decode
-          analysis = jsonDecode(rawAnalysis);
-          } else if (rawAnalysis is Map) {
-          // It is already a Map → convert
-          analysis = Map<String, dynamic>.from(rawAnalysis);
-          } else {
-          analysis = {};
-          }
+    if (rawAnalysis is String) {
+      // It is JSON text → decode
+      try {
+        analysis = jsonDecode(rawAnalysis);
+      } catch (e) {
+        analysis = {};
+      }
+    } else if (rawAnalysis is Map) {
+      // It is already a Map → convert
+      analysis = Map<String, dynamic>.from(rawAnalysis);
+    } else {
+      analysis = {};
+    }
 
-    // 🔹 Force-convert all nested maps
+    // 🔹 Safely extract nested maps
     final Map<String, dynamic> parties =
         (analysis["parties"] is Map)
             ? Map<String, dynamic>.from(analysis["parties"])
@@ -82,11 +86,28 @@ class ResultScreen extends StatelessWidget {
     final excessWear = penalties["excess_wear_charges"];
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Lease Analysis")),
+      appBar: AppBar(
+        title: const Text("Lease Analysis"),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: ListView(
           children: [
+
+            // 🔹 General Info (Top Summary)
+            if (vin != null)
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                margin: const EdgeInsets.only(bottom: 16),
+                child: ListTile(
+                  leading: const Icon(Icons.confirmation_number, color: Colors.indigo),
+                  title: const Text(
+                    "Vehicle VIN",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(vin.toString()),
+                ),
+              ),
 
             // 👤 Parties
             _sectionTitle("Parties"),
@@ -108,7 +129,6 @@ class ResultScreen extends StatelessWidget {
             _infoCard(Icons.calendar_today, "Year", year),
             _infoCard(Icons.car_rental, "Body Style", bodyStyle),
             _infoCard(Icons.color_lens, "Color", color),
-            _infoCard(Icons.confirmation_number, "VIN", vin),
             _infoCard(Icons.app_registration, "Registration Number", registration),
 
             // 💰 Financials
@@ -133,7 +153,7 @@ class ResultScreen extends StatelessWidget {
   // 🔹 Section Title Widget
   Widget _sectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(top: 16, bottom: 8),
+      padding: const EdgeInsets.only(top: 20, bottom: 8),
       child: Text(
         title,
         style: const TextStyle(
@@ -145,17 +165,21 @@ class ResultScreen extends StatelessWidget {
     );
   }
 
-  // 🔹 Info Card Widget (null-safe)
+  // 🔹 Info Card Widget (null-safe, production-safe)
   Widget _infoCard(IconData icon, String title, dynamic value) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: Icon(icon, color: Colors.indigo),
-        title: Text(title,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         subtitle: Text(
-          value?.toString() ?? "Not available",
+          value != null && value.toString().trim().isNotEmpty
+              ? value.toString()
+              : "Not available",
           style: const TextStyle(color: Colors.black87),
         ),
       ),
