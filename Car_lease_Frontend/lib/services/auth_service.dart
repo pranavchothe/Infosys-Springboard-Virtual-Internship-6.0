@@ -16,7 +16,7 @@ class AuthService {
       final data = jsonDecode(response.body);
       SharedPreferences prefs = await SharedPreferences.getInstance();
 
-      // 🔹 SAVE TOKEN CONSISTENTLY
+      // SAVE TOKEN CONSISTENTLY
       prefs.setString("access_token", data["access_token"]);
 
       return true;
@@ -34,13 +34,13 @@ class AuthService {
     return response.statusCode == 201;
   }
 
-  // 🔹 ALWAYS READ FROM access_token
+  // ALWAYS READ FROM access_token
   Future<String?> getToken() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString("access_token");
   }
 
-  // 🔹 ALWAYS REMOVE access_token
+  // ALWAYS REMOVE access_token
   Future<void> logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove("access_token");

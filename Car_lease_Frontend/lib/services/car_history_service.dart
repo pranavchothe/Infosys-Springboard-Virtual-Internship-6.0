@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class CarHistoryService {
   static const String baseUrl = "http://127.0.0.1:8000"; 
-  // Use http://127.0.0.1:8000 for web
+  
 
   Future<Map<String, dynamic>> fetchCarFullHistory(String vin) async {
     final prefs = await SharedPreferences.getInstance();
