@@ -19,7 +19,7 @@ from fairness_utils import calculate_fairness
 from vin_utils import decode_vin
 from schemas import CarFullHistoryRequest, CarFullHistoryResponse
 from services.car_full_history_service import CarFullHistoryService
-
+from ai_chat import router as ai_chat_router
 
 # Create DB tables
 Base.metadata.create_all(bind=engine)
@@ -35,7 +35,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
-
+app.include_router(ai_chat_router)
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
