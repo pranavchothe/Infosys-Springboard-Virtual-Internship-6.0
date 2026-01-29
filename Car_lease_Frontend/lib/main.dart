@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'screens/upload_screen.dart';
 import 'services/auth_service.dart';
+import 'widgets/chatbot_popup.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,6 +22,19 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Car Lease Analyzer',
       debugShowCheckedModeBanner: false,
+
+      // THIS GUARANTEES Overlay + Navigator EXIST
+      builder: (context, child) {
+        return Material(
+          child: Stack(
+            children: [
+              child!,         
+              ChatBotPopup(), 
+            ],
+          ),
+        );
+      },
+
       theme: ThemeData(
         primaryColor: const Color(0xFF5B4BFF),
         scaffoldBackgroundColor: const Color(0xFFF7F8FC),
@@ -48,6 +62,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
+
       home: FutureBuilder<Widget>(
         future: _getStartScreen(),
         builder: (context, snapshot) {
