@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/chatbot_context.dart';
 import '../services/car_history_service.dart';
 
 class CarHistoryTestScreen extends StatefulWidget {
@@ -12,7 +13,7 @@ class _CarHistoryTestScreenState extends State<CarHistoryTestScreen> {
   String? error;
   bool loading = false;
 
-  final service = CarHistoryService();
+  final CarHistoryService service = CarHistoryService();
 
   Future<void> fetchHistory() async {
     setState(() {
@@ -26,7 +27,10 @@ class _CarHistoryTestScreenState extends State<CarHistoryTestScreen> {
           await service.fetchCarFullHistory(vinController.text.trim());
       setState(() {
         result = data;
-      });
+        ChatBotContext.updateCarHistory(data);
+      }
+      );
+    
     } catch (e) {
       setState(() {
         error = e.toString();

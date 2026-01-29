@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'upload_screen.dart';
 import 'register_screen.dart';
+import '../services/chatbot_context.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,6 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => loading = false);
 
     if (success && mounted) {
+      ChatBotContext.setLoggedIn(true);
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const UploadScreen()),
