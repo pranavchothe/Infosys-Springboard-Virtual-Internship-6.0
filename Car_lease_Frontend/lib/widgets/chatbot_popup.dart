@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/chatbot_service.dart';
-import '../services/ai_chat_service.dart';
+import '../services/chatbot_api_service.dart';
 
 class ChatBotPopup extends StatefulWidget {
   @override
@@ -12,7 +12,7 @@ class _ChatBotPopupState extends State<ChatBotPopup> {
   final controller = TextEditingController();
 
   final service = ChatBotService();
-  final aiService = AIChatService();
+  final aiService = ChatbotApiService();
 
   final List<Map<String, String>> messages = [
     {
@@ -21,12 +21,12 @@ class _ChatBotPopupState extends State<ChatBotPopup> {
     }
   ];
 
-  // ✅ MUST BE ASYNC
+  // MUST BE ASYNC
   Future<void> send() async {
     final text = controller.text.trim();
     if (text.isEmpty) return;
 
-    // ✅ Add USER message
+    // Add USER message
     setState(() {
       messages.add({"role": "user", "text": text});
       messages.add({"role": "bot", "text": "Typing..."});
@@ -35,8 +35,7 @@ class _ChatBotPopupState extends State<ChatBotPopup> {
     controller.clear();
 
     try {
-      final aiReply = await aiService.sendMessage(text);
-
+      final aiReply = await aiService.sendMessage(text, 1); 
       setState(() {
         messages.removeLast(); // remove Typing...
         messages.add({"role": "bot", "text": aiReply});
@@ -134,14 +133,14 @@ class _ChatBotPopupState extends State<ChatBotPopup> {
             ),
           ),
 
-        Positioned(
-          bottom: 20,
-          right: 16,
-          child: FloatingActionButton(
-            onPressed: () => setState(() => open = !open),
-            child: Icon(open ? Icons.close : Icons.chat),
-          ),
-        )
+        //Positioned(
+          //bottom: 20,
+          //right: 16,
+          //child: FloatingActionButton(
+            //onPressed: () => setState(() => open = !open),
+            //child: Icon(open ? Icons.close : Icons.chat),
+          //),
+        //)
       ],
     );
   }
