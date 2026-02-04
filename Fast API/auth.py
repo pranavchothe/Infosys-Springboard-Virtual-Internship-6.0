@@ -20,7 +20,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
-class AuthRequest(BaseModel):
+class RegisterRequest(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+
+class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
@@ -41,15 +46,15 @@ def create_access_token(data: dict):
 
 
 @router.post("/register")
-def register(request: AuthRequest, db: Session = Depends(get_db)):
-    email = request.email
-    password = request.password
-
-    existing_user = db.query(User).filter(User.email == email).first()
-    if existing_user:
+def register(request: RegisterRequest, db: Session = Depends(get_db)):
+    if db.query(User).filter(User.email == request.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    user = User(email=email, hashed_password=hash_password(password))
+    user = User(
+        name=request.name,
+        email=request.email,
+        hashed_password=hash_password(request.password)
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -58,17 +63,19 @@ def register(request: AuthRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-def login(request: AuthRequest, db: Session = Depends(get_db)):
-    email = request.email
-    password = request.password
+def login(request: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == request.email).first()
 
-    user = db.query(User).filter(User.email == email).first()
-    if not user or not verify_password(password, user.hashed_password):
+    if not user or not verify_password(request.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     token = create_access_token({"sub": user.email})
-    return {"access_token": token, "token_type": "bearer"}
 
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "name": user.name
+    }
 
 def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -82,8 +89,9 @@ def get_current_user(
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
+
+        email = payload.get("sub")
+        if not isinstance(email, str):
             raise credentials_exception
     except JWTError:
         raise credentials_exception

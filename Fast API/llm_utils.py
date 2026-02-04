@@ -71,3 +71,19 @@ Document text:
     cleaned = re.sub(r"```json|```", "", str(raw_output)).strip()
 
     return cleaned
+
+
+def chat_with_llm(system_prompt: str, user_message: str) -> str:
+    """
+    Conversational LLM helper for chatbot.
+    Forces natural-language responses instead of JSON.
+    """
+    prompt = f"""
+{system_prompt}
+
+User question:
+{user_message}
+
+Answer in plain English:
+"""
+    return analyze_lease(prompt)

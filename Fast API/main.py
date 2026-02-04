@@ -1,5 +1,5 @@
 from email.mime import text
-from fastapi import FastAPI, File, UploadFile, Depends, HTTPException, status
+from fastapi import FastAPI, File, UploadFile, Depends, HTTPException, status, BackgroundTasks
 import re
 import json
 import shutil
@@ -12,7 +12,6 @@ from llm_utils import analyze_lease
 from database import SessionLocal, engine, Base
 from models import User, LeaseAnalysis
 from auth import get_current_user
-
 from ocr_utils import extract_text
 from llm_utils import analyze_lease
 from fairness_utils import calculate_fairness
@@ -28,14 +27,14 @@ app = FastAPI(title="Lease Document Analyzer API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
-app.include_router(ai_chat_router)
+app.include_router(ai_chat_router, prefix="/chatbot", tags=["chatbot"])
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -69,8 +68,37 @@ def root():
     return {"message": "Lease Document Analyzer API is running"}
 
 
+def fetch_and_store_car_history(record_id: int, vin: str):
+
+    db = SessionLocal()
+
+    try:
+        print(f"🌐 Background fetching car history for VIN: {vin}")
+
+        history_service = CarFullHistoryService()
+        car_history = history_service.fetch_full_history(vin)
+
+        record = db.query(LeaseAnalysis).filter(
+            LeaseAnalysis.id == record_id
+        ).first()
+
+        if record:
+            record.car_full_history = car_history
+            db.commit()
+
+        print("✅ Background car history saved")
+
+    except Exception as e:
+        print("❌ Background history fetch failed:", str(e))
+
+    finally:
+        db.close()
+
+
+
 @app.post("/upload")
-def upload_file(
+async def upload_file(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -112,7 +140,8 @@ def upload_file(
             "vin": existing_record.vin,
             "analysis_result": existing_record.analysis_result,
             "fairness_analysis": existing_record.fairness_analysis,
-            "vehicle_api_data": existing_record.vehicle_api_data
+            "vehicle_api_data": existing_record.vehicle_api_data,
+            "car_full_history": existing_record.car_full_history
         }
 
     #  CALL GROQ ONCE (USING YOUR analyze_lease)
@@ -209,6 +238,26 @@ def upload_file(
     # FAIRNESS
     fairness_result = calculate_fairness(parsed_json)
 
+    # SMART CAR HISTORY FETCH (DB CACHE FIRST)
+    car_full_history = None
+
+    if vin:
+
+        # CHECK IF VIN HISTORY ALREADY EXISTS IN DB
+        existing_record = db.query(LeaseAnalysis).filter(
+            LeaseAnalysis.vin == vin,
+            LeaseAnalysis.car_full_history.isnot(None)
+        ).first()
+
+        if existing_record:
+            print("✅ Using cached car history from DB")
+            car_full_history = existing_record.car_full_history
+
+        else:
+            print("🌐 Fetching car history from API")
+
+
+
     # STORE IN DB
     record = LeaseAnalysis(
         user_id=current_user.id,
@@ -218,11 +267,30 @@ def upload_file(
         fairness_analysis=fairness_result,
         vin=vin,
         vehicle_api_data=vehicle_api_data,
+        car_full_history=car_full_history,
     )
+
+
+    print("===== ABOUT TO SAVE RECORD =====")
+    print("User ID:", current_user.id)
+    print("Filename:", original_filename)
+    print("VIN:", vin)
+    print("================================")
+
 
     db.add(record)
     db.commit()
+    print("===== RECORD SAVED ID =====", record.id)
     db.refresh(record)
+
+    # RUN BACKGROUND CAR HISTORY FETCH
+    if vin and car_full_history is None:
+        background_tasks.add_task(
+            fetch_and_store_car_history,
+            record.id,
+            vin
+    )
+
 
     # RETURN TO FLUTTER
     return {
@@ -232,12 +300,13 @@ def upload_file(
         "vin": vin,
         "analysis_result": parsed_json,
         "fairness_analysis": fairness_result,
-        "vehicle_api_data": vehicle_api_data
+        "vehicle_api_data": vehicle_api_data,
+        "car_full_history": car_full_history
     }
 
 
 
-# 🔹 Car Full History API (JWT Protected)
+#  Car Full History API (JWT Protected)
 @app.post("/car-full-history", response_model=CarFullHistoryResponse)
 def get_car_full_history(
     request: CarFullHistoryRequest,
@@ -246,11 +315,6 @@ def get_car_full_history(
     service = CarFullHistoryService()
     result = service.fetch_full_history(request.vin)
     return result
-
-
-
-
-
 
 # JWT protected history
 @app.get("/history")
@@ -266,11 +330,14 @@ def get_history(
     )
 
     return [
-        {
-            "filename": r.filename,
-            "analysis_result": r.analysis_result,
-            "fairness_analysis": r.fairness_analysis,
-            "created_at": r.created_at.isoformat(),
-        }
-        for r in records
+    {
+        "id": r.id,
+        "filename": r.filename,
+        "analysis_result": r.analysis_result,
+        "fairness_analysis": r.fairness_analysis,
+        "car_full_history": r.car_full_history,
+        "vin": r.vin,
+        "created_at": r.created_at.isoformat(),
+    }
+    for r in records
     ]
