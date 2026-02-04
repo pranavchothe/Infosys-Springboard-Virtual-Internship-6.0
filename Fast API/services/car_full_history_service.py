@@ -33,7 +33,7 @@ class CarFullHistoryService:
         Mock history engine (API-ready for real provider later)
         """
 
-        accidental = random.choice([True, False, False]) 
+        accidental = random.choice([True, False, False])  # more likely False
         flood_damage = random.choice([False, False, False, True])
         owners = random.randint(1, 3)
         insurance_claims = random.randint(0, 2)
