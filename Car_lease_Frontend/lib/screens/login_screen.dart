@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'upload_screen.dart';
 import 'register_screen.dart';
 import '../services/chatbot_context.dart';
+import '../main.dart'; // ✅ REQUIRED for MainShell
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,10 +14,12 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+
   bool loading = false;
+  bool showPassword = false;
   String error = "";
 
-  void _login() async {
+  Future<void> _login() async {
     setState(() {
       loading = true;
       error = "";
@@ -28,13 +30,17 @@ class _LoginScreenState extends State<LoginScreen> {
       passwordController.text.trim(),
     );
 
+    if (!mounted) return;
+
     setState(() => loading = false);
 
-    if (success && mounted) {
+    if (success) {
       ChatBotContext.setLoggedIn(true);
+
+      // ✅ ALWAYS GO TO HOME
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const UploadScreen()),
+        MaterialPageRoute(builder: (_) => const MainShell()),
       );
     } else {
       setState(() {
@@ -45,73 +51,97 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Welcome Back 👋",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  "Login to analyze your car lease",
-                  style: TextStyle(color: Colors.grey),
-                ),
-                const SizedBox(height: 32),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                "Welcome Back 👋",
+                style: theme.textTheme.titleLarge,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                "Login to analyze your car lease",
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 32),
 
-                TextField(
-                  controller: emailController,
-                  decoration: const InputDecoration(
-                    hintText: "Email",
-                    prefixIcon: Icon(Icons.email_outlined),
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: "Email",
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              TextField(
+                controller: passwordController,
+                obscureText: !showPassword,
+                decoration: InputDecoration(
+                  labelText: "Password",
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      showPassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed: () =>
+                        setState(() => showPassword = !showPassword),
                   ),
                 ),
-                const SizedBox(height: 16),
+              ),
 
-                TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    hintText: "Password",
-                    prefixIcon: Icon(Icons.lock_outline),
-                  ),
+              const SizedBox(height: 12),
+
+              if (error.isNotEmpty)
+                Text(
+                  error,
+                  style: const TextStyle(color: Colors.redAccent),
+                  textAlign: TextAlign.center,
                 ),
 
-                const SizedBox(height: 12),
-                if (error.isNotEmpty)
-                  Text(error, style: const TextStyle(color: Colors.red)),
+              const SizedBox(height: 24),
 
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: loading ? null : _login,
-                    child: loading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text("Login"),
-                  ),
+              SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: loading ? null : _login,
+                  child: loading
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text("Login"),
                 ),
+              ),
 
-                const SizedBox(height: 16),
-                Center(
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const RegisterScreen()),
-                      );
-                    },
-                    child: const Text("Create an account"),
-                  ),
-                ),
-              ],
-            ),
+              const SizedBox(height: 16),
+
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const RegisterScreen(),
+                    ),
+                  );
+                },
+                child: const Text("Create an account"),
+              ),
+            ],
           ),
         ),
       ),

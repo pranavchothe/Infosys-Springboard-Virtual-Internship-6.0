@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'login_screen.dart';
-import 'car_history_test.dart';
-import 'result_screen.dart';
 import '../services/upload_service.dart';
+import 'processing_screen.dart';
+import 'result_screen.dart';
+import 'login_screen.dart';
 
 class UploadScreen extends StatefulWidget {
-  const UploadScreen({Key? key}) : super(key: key);
+  const UploadScreen({super.key});
 
   @override
   State<UploadScreen> createState() => _UploadScreenState();
@@ -24,7 +24,6 @@ class _UploadScreenState extends State<UploadScreen> {
 
   final uploadService = UploadService();
 
-  // 🔹 Pick PDF file (Web-safe)
   Future<void> pickFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -41,12 +40,9 @@ class _UploadScreenState extends State<UploadScreen> {
     }
   }
 
-  // 🔹 Upload and navigate to ResultScreen
   Future<void> uploadAndAnalyze() async {
-    if (fileBytes == null || fileName == null) {
-      setState(() {
-        message = "Please select a PDF file first.";
-      });
+    if (fileBytes == null) {
+      setState(() => message = "Please select a PDF file first.");
       return;
     }
 
@@ -55,38 +51,46 @@ class _UploadScreenState extends State<UploadScreen> {
       message = null;
     });
 
-    try {
-      final response = await uploadService.uploadLeaseBytes(
-        fileBytes!,
-        fileName!,
-      );
+    final proceed = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ProcessingScreen()),
+    );
 
-      print("UPLOAD RESPONSE: $response");
-
-      if (!mounted) return;
-
-      // 🔹 Navigate to your existing ResultScreen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ResultScreen(result: response),
-        ),
-      );
-
-    } catch (e) {
-      setState(() {
-        message = "Upload failed: $e";
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          loading = false;
-        });
-      }
+    if (proceed != true) {
+      setState(() => loading = false);
+      return;
     }
+
+    final response = await uploadService.uploadLeaseBytes(
+      fileBytes!,
+      fileName!,
+    );
+
+    if (!mounted) return;
+
+    final recordId = response?["record_id"] ?? response?["id"];
+
+    if (recordId == null) {
+      setState(() {
+        loading = false;
+        message = "Analysis completed but record could not be loaded.";
+      });
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ResultScreen(
+          result: response!,
+          recordId: recordId,
+        ),
+      ),
+    );
+
+    setState(() => loading = false);
   }
 
-  // 🔹 Logout
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove("access_token");
@@ -96,100 +100,90 @@ class _UploadScreenState extends State<UploadScreen> {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (route) => false,
+      (_) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Car Lease Analyzer"),
+        title: const Text("Upload Lease"),
         actions: [
           IconButton(
-            onPressed: logout,
             icon: const Icon(Icons.logout),
-            tooltip: "Logout",
+            onPressed: logout,
           ),
         ],
       ),
       body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.upload_file, size: 64),
+                  const SizedBox(height: 16),
 
-              const Text(
-                "Upload Lease Document",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 24),
-
-              // Pick File Button
-              ElevatedButton.icon(
-                onPressed: pickFile,
-                icon: const Icon(Icons.attach_file),
-                label: const Text("Select PDF File"),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Show selected file name
-              if (fileName != null)
-                Text(
-                  "Selected: $fileName",
-                  textAlign: TextAlign.center,
-                ),
-
-              const SizedBox(height: 20),
-
-              // Upload Button
-              ElevatedButton.icon(
-                onPressed: loading ? null : uploadAndAnalyze,
-                icon: const Icon(Icons.cloud_upload),
-                label: const Text("Upload & Analyze"),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Car History Button
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => CarHistoryTestScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.directions_car),
-                label: const Text("Car History"),
-              ),
-
-              const SizedBox(height: 24),
-
-              if (loading)
-                const Center(child: CircularProgressIndicator()),
-
-              const SizedBox(height: 12),
-
-              if (message != null)
-                Text(
-                  message!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: message!.toLowerCase().contains("failed")
-                        ? Colors.red
-                        : Colors.green,
+                  Text(
+                    "Upload Lease Document",
+                    style: theme.textTheme.titleLarge,
                   ),
-                ),
-            ],
+                  const SizedBox(height: 8),
+
+                  Text(
+                    "Securely upload your car lease PDF for AI analysis",
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  OutlinedButton.icon(
+                    onPressed: pickFile,
+                    icon: const Icon(Icons.attach_file),
+                    label: const Text("Select PDF File"),
+                  ),
+
+                  if (fileName != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      fileName!,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ],
+
+                  const SizedBox(height: 24),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: loading ? null : uploadAndAnalyze,
+                      icon: const Icon(Icons.analytics),
+                      label: const Text("Analyze Lease"),
+                    ),
+                  ),
+
+                  if (loading) ...[
+                    const SizedBox(height: 16),
+                    const CircularProgressIndicator(),
+                  ],
+
+                  if (message != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      message!,
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

@@ -1,186 +1,152 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'history_screen.dart';
 
 class ResultScreen extends StatelessWidget {
   final Map<String, dynamic> result;
+  final int recordId;
 
-  const ResultScreen({super.key, required this.result});
+  const ResultScreen({
+    super.key,
+    required this.result,
+    required this.recordId,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // 🔹 Force-convert main analysis map safely
+    final theme = Theme.of(context);
+
+    // ---------- SAFE ANALYSIS PARSE ----------
     Map<String, dynamic> analysis = {};
 
     final rawAnalysis = result["analysis_result"];
 
     if (rawAnalysis is String) {
-      // It is JSON text → decode
       try {
         analysis = jsonDecode(rawAnalysis);
-      } catch (e) {
+      } catch (_) {
         analysis = {};
       }
     } else if (rawAnalysis is Map) {
-      // It is already a Map → convert
       analysis = Map<String, dynamic>.from(rawAnalysis);
-    } else {
-      analysis = {};
     }
 
-    // 🔹 Safely extract nested maps
-    final Map<String, dynamic> parties =
-        (analysis["parties"] is Map)
-            ? Map<String, dynamic>.from(analysis["parties"])
-            : {};
-
-    final Map<String, dynamic> leaseDetails =
-        (analysis["lease_details"] is Map)
-            ? Map<String, dynamic>.from(analysis["lease_details"])
-            : {};
-
-    final Map<String, dynamic> vehicle =
-        (analysis["vehicle_details"] is Map)
-            ? Map<String, dynamic>.from(analysis["vehicle_details"])
-            : {};
-
-    final Map<String, dynamic> financials =
-        (analysis["financials"] is Map)
-            ? Map<String, dynamic>.from(analysis["financials"])
-            : {};
-
-    final Map<String, dynamic> penalties =
-        (analysis["penalties"] is Map)
-            ? Map<String, dynamic>.from(analysis["penalties"])
-            : {};
-
-    // 👤 Parties
-    final lessor = parties["lessor"];
-    final lessee = parties["lessee"];
-
-    // 📄 Lease Details
-    final startDate = leaseDetails["start_date"];
-    final endDate = leaseDetails["end_date"];
-    final leaseDuration = leaseDetails["lease_duration"];
-    final rentAmount = leaseDetails["rent_amount"];
-    final paymentTerms = leaseDetails["payment_terms"];
-
-    // 🚗 Vehicle Details
-    final maker = vehicle["maker"];
-    final model = vehicle["model"];
-    final year = vehicle["year"];
-    final bodyStyle = vehicle["body_style"];
-    final color = vehicle["color"];
-    final vin = vehicle["vehicle_id_number"];
-    final registration = vehicle["registration_number"];
-
-    // 💰 Financials
-    final baseMonthly = financials["base_monthly_payment"];
-    final totalMonthly = financials["total_monthly_payment"];
-    final totalOfPayments = financials["total_of_payments"];
-    final residualValue = financials["residual_value"];
-    final purchaseOption = financials["purchase_option_price"];
-
-    // ⚠️ Penalties
-    final earlyTermination = penalties["early_termination_charge"];
-    final lateFee = penalties["late_payment_fee"];
-    final excessWear = penalties["excess_wear_charges"];
+    final parties = Map<String, dynamic>.from(analysis["parties"] ?? {});
+    final lease = Map<String, dynamic>.from(analysis["lease_details"] ?? {});
+    final vehicle = Map<String, dynamic>.from(analysis["vehicle_details"] ?? {});
+    final financials = Map<String, dynamic>.from(analysis["financials"] ?? {});
+    final penalties = Map<String, dynamic>.from(analysis["penalties"] ?? {});
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Lease Analysis"),
       ),
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(20),
-        child: ListView(
-          children: [
-
-            // 🔹 General Info (Top Summary)
-            if (vin != null)
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                margin: const EdgeInsets.only(bottom: 16),
-                child: ListTile(
-                  leading: const Icon(Icons.confirmation_number, color: Colors.indigo),
-                  title: const Text(
-                    "Vehicle VIN",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(vin.toString()),
-                ),
+        children: [
+          // ================= VEHICLE SUMMARY =================
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.directions_car),
+              title: Text(
+                vehicle["model"] ?? "Vehicle Details",
+                style: theme.textTheme.titleLarge,
               ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (vehicle["maker"] != null)
+                    Text("Manufacturer: ${vehicle["maker"]}"),
+                  if (vehicle["year"] != null)
+                    Text("Year: ${vehicle["year"]}"),
+                  if (vehicle["vehicle_id_number"] != null)
+                    Text("VIN: ${vehicle["vehicle_id_number"]}"),
+                ],
+              ),
+            ),
+          ),
 
-            // 👤 Parties
-            _sectionTitle("Parties"),
-            _infoCard(Icons.person, "Lessor", lessor),
-            _infoCard(Icons.person_outline, "Lessee", lessee),
+          const SizedBox(height: 24),
 
-            // 📄 Lease Details
-            _sectionTitle("Lease Details"),
-            _infoCard(Icons.date_range, "Start Date", startDate),
-            _infoCard(Icons.event, "End Date", endDate),
-            _infoCard(Icons.timelapse, "Lease Duration", leaseDuration),
-            _infoCard(Icons.attach_money, "Rent Amount", rentAmount),
-            _infoCard(Icons.schedule, "Payment Terms", paymentTerms),
+          _sectionTitle("Parties", theme),
+          _infoCard("Lessor", parties["lessor"]),
+          _infoCard("Lessee", parties["lessee"]),
 
-            // 🚗 Vehicle Details
-            _sectionTitle("Vehicle Details"),
-            _infoCard(Icons.directions_car, "Maker", maker),
-            _infoCard(Icons.directions_car_filled, "Model", model),
-            _infoCard(Icons.calendar_today, "Year", year),
-            _infoCard(Icons.car_rental, "Body Style", bodyStyle),
-            _infoCard(Icons.color_lens, "Color", color),
-            _infoCard(Icons.app_registration, "Registration Number", registration),
+          const SizedBox(height: 16),
 
-            // 💰 Financials
-            _sectionTitle("Financials"),
-            _infoCard(Icons.payments, "Base Monthly Payment", baseMonthly),
-            _infoCard(Icons.payments_outlined, "Total Monthly Payment", totalMonthly),
-            _infoCard(Icons.summarize, "Total of Payments", totalOfPayments),
-            _infoCard(Icons.savings, "Residual Value", residualValue),
-            _infoCard(Icons.shopping_cart, "Purchase Option Price", purchaseOption),
+          _sectionTitle("Lease Terms", theme),
+          _infoCard("Start Date", lease["start_date"]),
+          _infoCard("End Date", lease["end_date"]),
+          _infoCard("Duration", lease["lease_duration"]),
+          _infoCard("Rent Amount", lease["rent_amount"]),
+          _infoCard("Payment Terms", lease["payment_terms"]),
 
-            // ⚠️ Penalties
-            _sectionTitle("Penalties"),
-            _infoCard(Icons.warning, "Early Termination Charge", earlyTermination),
-            _infoCard(Icons.money_off, "Late Payment Fee", lateFee),
-            _infoCard(Icons.build, "Excess Wear Charges", excessWear),
-          ],
-        ),
+          const SizedBox(height: 16),
+
+          _sectionTitle("Financial Overview", theme),
+          _infoCard("Base Monthly Payment", financials["base_monthly_payment"]),
+          _infoCard("Total Monthly Payment", financials["total_monthly_payment"]),
+          _infoCard("Total of Payments", financials["total_of_payments"]),
+          _infoCard("Residual Value", financials["residual_value"]),
+          _infoCard("Purchase Option Price", financials["purchase_option_price"]),
+
+          const SizedBox(height: 16),
+
+          _sectionTitle("Penalties & Risks", theme),
+          _infoCard(
+            "Early Termination Charge",
+            penalties["early_termination_charge"],
+          ),
+          _infoCard(
+            "Late Payment Fee",
+            penalties["late_payment_fee"],
+          ),
+          _infoCard(
+            "Excess Wear Charges",
+            penalties["excess_wear_charges"],
+          ),
+
+          const SizedBox(height: 30),
+
+          // ================= CTA =================
+          ElevatedButton.icon(
+            icon: const Icon(Icons.history),
+            label: const Text("View This Car’s History"),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => HistoryScreen(recordId: recordId),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
 
-  // 🔹 Section Title Widget
-  Widget _sectionTitle(String title) {
+  // ================= SECTION TITLE =================
+  Widget _sectionTitle(String title, ThemeData theme) {
     return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 8),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.indigo,
-        ),
+        style: theme.textTheme.titleLarge,
       ),
     );
   }
 
-  // 🔹 Info Card Widget (null-safe, production-safe)
-  Widget _infoCard(IconData icon, String title, dynamic value) {
+  // ================= INFO CARD =================
+  Widget _infoCard(String label, dynamic value) {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
-        leading: Icon(icon, color: Colors.indigo),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: Text(label),
         subtitle: Text(
-          value != null && value.toString().trim().isNotEmpty
+          value != null && value.toString().isNotEmpty
               ? value.toString()
               : "Not available",
-          style: const TextStyle(color: Colors.black87),
         ),
       ),
     );

@@ -10,76 +10,180 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final AuthService _authService = AuthService();
-  final TextEditingController _email = TextEditingController();
-  final TextEditingController _password = TextEditingController();
 
-  bool _loading = false;
-  String? _error;
+  final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+
+  bool loading = false;
+  bool showPassword = false;
+  String? error;
+
+  bool get passwordsMatch =>
+      passwordController.text.isNotEmpty &&
+      passwordController.text == confirmPasswordController.text;
 
   Future<void> _register() async {
     setState(() {
-      _loading = true;
-      _error = null;
+      loading = true;
+      error = null;
     });
 
-    final success = await _authService.register(
-      _email.text.trim(),
-      _password.text.trim(),
-    );
-
-    if (success) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Registration successful. Please login.")),
-      );
-    } else {
-      setState(() => _error = "Registration failed");
+    if (!passwordsMatch) {
+      setState(() {
+        loading = false;
+        error = "Passwords do not match";
+      });
+      return;
     }
 
-    setState(() => _loading = false);
+    final success = await _authService.register(
+      nameController.text.trim(),
+      emailController.text.trim(),
+      passwordController.text.trim(),
+    );
+
+    if (!mounted) return;
+
+    setState(() => loading = false);
+
+    if (success) {
+      // ✅ Success popup
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Registration Successful"),
+          content: const Text("Please login to continue."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context); // go back to login
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+    } else {
+      setState(() {
+        error = "Registration failed. Email may already exist.";
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Register")),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      appBar: AppBar(title: const Text("Create Account")),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              "Create Account",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 30),
+            Text("Let’s get started",
+                style: theme.textTheme.titleLarge),
+            const SizedBox(height: 6),
+            Text("Create your account to analyze leases",
+                style: theme.textTheme.bodyMedium),
+
+            const SizedBox(height: 32),
+
+            // Name
             TextField(
-              controller: _email,
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: "Full Name",
+                prefixIcon: Icon(Icons.person_outline),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Email
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
                 labelText: "Email",
-                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.email_outlined),
               ),
             ),
-            const SizedBox(height: 12),
+
+            const SizedBox(height: 16),
+
+            // Password
             TextField(
-              controller: _password,
-              obscureText: true,
-              decoration: const InputDecoration(
+              controller: passwordController,
+              obscureText: !showPassword,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
                 labelText: "Password",
-                border: OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    showPassword
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                  ),
+                  onPressed: () =>
+                      setState(() => showPassword = !showPassword),
+                ),
               ),
             ),
-            const SizedBox(height: 20),
-            if (_error != null)
-              Text(_error!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 10),
+
+            const SizedBox(height: 16),
+
+            // Confirm Password
+            TextField(
+              controller: confirmPasswordController,
+              obscureText: !showPassword,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: "Confirm Password",
+                prefixIcon: Icon(Icons.lock),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Password match indicator
+            if (confirmPasswordController.text.isNotEmpty)
+              Text(
+                passwordsMatch
+                    ? "Passwords match ✓"
+                    : "Passwords do not match",
+                style: TextStyle(
+                  color: passwordsMatch
+                      ? Colors.greenAccent
+                      : Colors.redAccent,
+                ),
+              ),
+
+            const SizedBox(height: 16),
+
+            if (error != null)
+              Text(
+                error!,
+                style: const TextStyle(color: Colors.redAccent),
+                textAlign: TextAlign.center,
+              ),
+
+            const SizedBox(height: 24),
+
             SizedBox(
-              width: double.infinity,
+              height: 48,
               child: ElevatedButton(
-                onPressed: _loading ? null : _register,
-                child: _loading
-                    ? const CircularProgressIndicator()
-                    : const Text("Register"),
+                onPressed: loading ? null : _register,
+                child: loading
+                    ? const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      )
+                    : const Text("Create Account"),
               ),
             ),
           ],
