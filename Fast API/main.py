@@ -344,6 +344,35 @@ def get_lease_by_id(
         "car_full_history": record.car_full_history,
     }
 
+# ================= CAR HISTORY BY VIN (JWT PROTECTED) =================
+@app.get("/car-history/{vin}")
+def get_car_history_by_vin(
+    vin: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    record = (
+        db.query(LeaseAnalysis)
+        .filter(
+            LeaseAnalysis.vin == vin,
+            LeaseAnalysis.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not record:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No car history found for VIN {vin}"
+        )
+
+    return {
+        "vin": record.vin,
+        "vehicle_api_data": record.vehicle_api_data,
+        "car_full_history": record.car_full_history,
+    }
+
+
 
 # JWT protected history
 @app.get("/history")
