@@ -1,12 +1,14 @@
 import 'dart:typed_data';
-import 'package:flutter/material.dart';
+import 'dart:convert';
+
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../services/upload_service.dart';
-import 'processing_screen.dart';
 import 'result_screen.dart';
-import 'login_screen.dart';
+import 'processing_screen.dart';
 
 class UploadScreen extends StatefulWidget {
   const UploadScreen({super.key});
@@ -16,15 +18,17 @@ class UploadScreen extends StatefulWidget {
 }
 
 class _UploadScreenState extends State<UploadScreen> {
-  Uint8List? fileBytes;
+  Uint8List? pdfBytes;
   String? fileName;
 
-  bool loading = false;
-  String? message;
+  final String baseUrl = "http://127.0.0.1:8000";
 
-  final uploadService = UploadService();
+  Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("access_token");
+  }
 
-  Future<void> pickFile() async {
+  Future<void> _pickPdf() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
@@ -33,159 +37,304 @@ class _UploadScreenState extends State<UploadScreen> {
 
     if (result != null && result.files.single.bytes != null) {
       setState(() {
-        fileBytes = result.files.single.bytes;
+        pdfBytes = result.files.single.bytes;
         fileName = result.files.single.name;
-        message = null;
       });
     }
   }
 
-  Future<void> uploadAndAnalyze() async {
-    if (fileBytes == null) {
-      setState(() => message = "Please select a PDF file first.");
-      return;
-    }
-
-    setState(() {
-      loading = true;
-      message = null;
-    });
-
-    final proceed = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ProcessingScreen()),
+  void _showProcessing(int step) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => ProcessingDialog(currentStep: step),
     );
+  }
 
-    if (proceed != true) {
-      setState(() => loading = false);
-      return;
-    }
+  Future<void> _sendPdfToBackend() async {
+    if (pdfBytes == null || fileName == null) return;
 
-    final response = await uploadService.uploadLeaseBytes(
-      fileBytes!,
-      fileName!,
-    );
+    try {
+      _showProcessing(0);
+      await Future.delayed(const Duration(milliseconds: 300));
 
-    if (!mounted) return;
+      final token = await _getToken();
+      if (token == null) return;
 
-    final recordId = response?["record_id"] ?? response?["id"];
+      Navigator.pop(context);
+      _showProcessing(1);
 
-    if (recordId == null) {
-      setState(() {
-        loading = false;
-        message = "Analysis completed but record could not be loaded.";
-      });
-      return;
-    }
+      final uri = Uri.parse("$baseUrl/upload");
+      final request = http.MultipartRequest("POST", uri);
+      request.headers["Authorization"] = "Bearer $token";
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ResultScreen(
-          result: response!,
-          recordId: recordId,
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          "file",
+          pdfBytes!,
+          filename: fileName,
+          contentType: MediaType("application", "pdf"),
         ),
-      ),
-    );
+      );
 
-    setState(() => loading = false);
-  }
+      Navigator.pop(context);
+      _showProcessing(2);
 
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove("access_token");
+      final streamedResponse = await request.send();
+      final responseBody = await streamedResponse.stream.bytesToString();
 
-    if (!mounted) return;
+      Navigator.pop(context);
+      _showProcessing(3);
+      await Future.delayed(const Duration(milliseconds: 300));
 
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-      (_) => false,
-    );
+      if (streamedResponse.statusCode == 200) {
+        final decoded = json.decode(responseBody);
+        Navigator.pop(context);
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ResultScreen(
+              result: Map<String, dynamic>.from(decoded ?? {}),
+            ),
+          ),
+        );
+      } else {
+        Navigator.pop(context);
+      }
+    } catch (_) {
+      Navigator.pop(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Upload Lease"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: logout,
-          ),
-        ],
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Card(
-            child: Padding(
+      backgroundColor: const Color(0xFF020617),
+      body: Stack(
+        children: [
+          /// BACKGROUND IMAGE
+            Positioned.fill(
+              child: Image.asset(
+                "assets/images/galaxy_bg.png",
+                fit: BoxFit.cover,
+              ),
+            ),
+
+            /// DARK OVERLAY (for readability)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.65),
+              ),
+            ),
+
+          /// MAIN CONTENT
+          Center(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.upload_file, size: 64),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 40),
 
-                  Text(
-                    "Upload Lease Document",
-                    style: theme.textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
-
-                  Text(
-                    "Securely upload your car lease PDF for AI analysis",
+                  /// TITLE
+                  const Text(
+                    "Upload Your Car Lease for Smart Analysis",
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  OutlinedButton.icon(
-                    onPressed: pickFile,
-                    icon: const Icon(Icons.attach_file),
-                    label: const Text("Select PDF File"),
-                  ),
-
-                  if (fileName != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      fileName!,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ],
-
-                  const SizedBox(height: 24),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: loading ? null : uploadAndAnalyze,
-                      icon: const Icon(Icons.analytics),
-                      label: const Text("Analyze Lease"),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
 
-                  if (loading) ...[
-                    const SizedBox(height: 16),
-                    const CircularProgressIndicator(),
-                  ],
+                  const SizedBox(height: 12),
 
-                  if (message != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      message!,
-                      style: const TextStyle(color: Colors.redAccent),
+                  const Text(
+                    "Upload your lease agreement PDF for an AI-powered review and analysis.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white60,
+                      fontSize: 15,
                     ),
-                  ],
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  /// UPLOAD CARD
+                  GestureDetector(
+                    onTap: _pickPdf,
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 36),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF020617),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white24,
+                          style: BorderStyle.solid,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.cloud_upload_outlined,
+                            color: Color(0xFF60A5FA),
+                            size: 60,
+                          ),
+                          const SizedBox(height: 20),
+                          const Text(
+                            "Drag & Drop or Select File",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _pickPdf,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFDC2626),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 28, vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                            ),
+                            child: const Text(
+                              "Browse Files",
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          if (fileName != null) ...[
+                            const SizedBox(height: 14),
+                            Text(
+                              fileName!,
+                              style: const TextStyle(color: Colors.white70),
+                            ),
+                          ]
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  /// FEATURES ROW
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 28,
+                    runSpacing: 24,
+                    children: const [
+                      _FeatureItem(
+                        icon: Icons.search,
+                        title: "Deep Lease Analysis",
+                        subtitle:
+                            "Detect hidden fees and unfair clauses",
+                      ),
+                      _FeatureItem(
+                        icon: Icons.smart_toy,
+                        title: "AI Negotiation",
+                        subtitle:
+                            "Dealer & customer role-play negotiation",
+                      ),
+                      _FeatureItem(
+                        icon: Icons.history,
+                        title: "Car History Check",
+                        subtitle:
+                            "Accident, insurance & ownership insights",
+                      ),
+                      _FeatureItem(
+                        icon: Icons.warning_amber,
+                        title: "Risk Alerts",
+                        subtitle:
+                            "Identify legally risky terms",
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  if (pdfBytes != null)
+                    SizedBox(
+                      width: 280,
+                      child: ElevatedButton(
+                        onPressed: _sendPdfToBackend,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFDC2626),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        child: const Text(
+                          "Analyze Lease with AI",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+}
+
+/// FEATURE ITEM WIDGET
+class _FeatureItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _FeatureItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 220,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Colors.white70),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Colors.white60,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

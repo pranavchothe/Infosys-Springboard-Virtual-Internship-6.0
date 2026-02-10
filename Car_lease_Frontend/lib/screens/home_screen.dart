@@ -1,243 +1,296 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'upload_screen.dart';
+import '../services/auth_service.dart';
 import 'profile_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  // ================= GREETING =================
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-
-    if (hour < 12) {
-      return "Good Morning 👋";
-    } else if (hour < 17) {
-      return "Good Afternoon 👋";
-    } else {
-      return "Good Evening 👋";
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF0F2027),
-              Color(0xFF203A43),
-              Color(0xFF2C5364),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      backgroundColor: const Color(0xFF0B1220),
+
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0B1220),
+        elevation: 0,
+        title: const Text("Car Lease AI"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            tooltip: "Profile",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ProfileScreen(),
+                ),
+              );
+            },
           ),
-        ),
-        child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              // ================= HEADER =================
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ProfileScreen(),
-                        ),
-                      );
-                    },
-                    child: const CircleAvatar(
-                      radius: 22,
-                      backgroundColor: Colors.white24,
-                      child: Icon(Icons.person),
+
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == "logout") {
+                AuthService.logout(context);
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: "logout", child: Text("Logout")),
+            ],
+          ),
+        ],
+
+      ),
+
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+
+            /// ================= HERO SECTION =================
+            Stack(
+              children: [
+                SizedBox(
+                  height: 420,
+                  width: double.infinity,
+                  child: Image.asset(
+                    "assets/images/hero_car.jpg",
+                    fit: BoxFit.cover,
+                  ),
+                ),
+
+                Container(
+                  height: 420,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.45),
+                        Colors.black.withOpacity(0.85),
+                      ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("No notifications yet"),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+                ),
 
-              const SizedBox(height: 30),
-
-              // ================= WELCOME =================
-              FutureBuilder<SharedPreferences>(
-                future: SharedPreferences.getInstance(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const SizedBox();
-                  }
-
-                  final prefs = snapshot.data!;
-                  final userName =
-                      prefs.getString("user_name") ?? "User";
-
-                  return Column(
+                Positioned(
+                  left: 24,
+                  right: 24,
+                  bottom: 60,
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _getGreeting(),
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        userName,
-                        style: theme.textTheme.displaySmall?.copyWith(
+                      const Text(
+                        "Drive Your Dream Car for Less",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Your car lease documents, simplified by AI",
-                        style: theme.textTheme.bodyMedium,
+                      const SizedBox(height: 12),
+                      const Text(
+                        "Upload your lease, uncover hidden fees,\nand negotiate smarter using AI.",
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      SizedBox(
+                        width: 260,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const UploadScreen(),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFDC2626),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                          child: const Text(
+                            "Upload Lease PDF",
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
                       ),
                     ],
-                  );
-                },
-              ),
-
-              const SizedBox(height: 30),
-
-              // ================= HERO CARD =================
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF6A11CB),
-                      Color(0xFF2575FC),
-                    ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.25),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Analyze a Lease",
-                      style: theme.textTheme.titleLarge,
+              ],
+            ),
+
+            /// ================= WHY SECTION =================
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Why Car Lease AI?",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Upload your car lease PDF and get instant AI insights",
-                      style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 20),
+
+                  _feature(Icons.search, "Deep Lease Analysis",
+                      "Detect hidden fees and unfair clauses"),
+                  _feature(Icons.smart_toy, "AI Negotiation",
+                      "Dealer & customer role-play negotiation"),
+                  _feature(Icons.directions_car, "Car History Check",
+                      "Accident, insurance & ownership insights"),
+                  _feature(Icons.warning_amber, "Risk Alerts",
+                      "Identify legally risky terms"),
+                ],
+              ),
+            ),
+
+            /// ================= HOW IT WORKS =================
+            Container(
+              width: double.infinity,
+              color: const Color(0xFF020617),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: const [
+                  Text(
+                    "How It Works",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const UploadScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.upload_file),
-                      label: const Text("Upload Lease"),
+                  ),
+                  SizedBox(height: 20),
+
+                  _Step(number: "1", title: "Upload Lease", desc: "Upload your lease PDF"),
+                  _Step(number: "2", title: "AI Analysis", desc: "We analyze fairness & risks"),
+                  _Step(number: "3", title: "Negotiate", desc: "Negotiate smarter with AI"),
+                ],
+              ),
+            ),
+
+            /// ================= FOOTER CTA =================
+            Container(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  const Text(
+                    "Get Started Today",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Find your perfect lease deal now.",
+                    style: TextStyle(color: Colors.white60),
+                  ),
+                  const SizedBox(height: 20),
 
-              const SizedBox(height: 30),
-
-              // ================= RECENT =================
-              Text(
-                "Recent Activity",
-                style: theme.textTheme.titleMedium,
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const UploadScreen(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE11D48),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 36, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text("GET YOUR QUOTE"),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-
-              _recentCard(
-                context,
-                "YS3DF78KX67012345",
-                "Processed successfully",
-              ),
-              _recentCard(
-                context,
-                "WAUZZZ8V4JA012345",
-                "AI analysis completed",
-              ),
-
-              const SizedBox(height: 30),
-
-              // ================= AI TIP =================
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white12,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  "💡 Tip: Ask the AI chatbot about early termination clauses to avoid hidden penalties.",
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ================= RECENT CARD =================
-  Widget _recentCard(
-    BuildContext context,
-    String vin,
-    String status,
-  ) {
-    final theme = Theme.of(context);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white10,
-        borderRadius: BorderRadius.circular(14),
-      ),
+  /// ================= FEATURE TILE =================
+  static Widget _feature(IconData icon, String title, String subtitle) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
-          const Icon(Icons.directions_car),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  vin,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  status,
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ],
-            ),
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: Colors.white12,
+            child: Icon(icon, color: Colors.white),
           ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
+              Text(subtitle,
+                  style: const TextStyle(color: Colors.white60)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ================= STEP WIDGET =================
+class _Step extends StatelessWidget {
+  final String number;
+  final String title;
+  final String desc;
+
+  const _Step({
+    required this.number,
+    required this.title,
+    required this.desc,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: const Color(0xFF6366F1),
+            child: Text(number,
+                style: const TextStyle(color: Colors.white)),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
+              Text(desc,
+                  style: const TextStyle(color: Colors.white60)),
+            ],
+          )
         ],
       ),
     );

@@ -1,7 +1,30 @@
 import 'package:flutter/material.dart';
 
-class ChatbotSheet extends StatelessWidget {
-  const ChatbotSheet({super.key});
+class ChatbotSheet extends StatefulWidget {
+  final void Function(String message)? onSend;
+
+  const ChatbotSheet({
+    super.key,
+    this.onSend,
+  });
+
+  @override
+  State<ChatbotSheet> createState() => _ChatbotSheetState();
+}
+
+class _ChatbotSheetState extends State<ChatbotSheet> {
+  final TextEditingController _controller = TextEditingController();
+
+  void _handleSend() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+
+    widget.onSend?.call(text);
+    _controller.clear();
+
+    // Close sheet after send (natural UX)
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +76,10 @@ class ChatbotSheet extends StatelessWidget {
 
             // ================= INPUT =================
             TextField(
+              controller: _controller,
               maxLines: 3,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => _handleSend(),
               decoration: InputDecoration(
                 hintText: "e.g. Can I terminate early?",
                 filled: true,
@@ -69,9 +95,7 @@ class ChatbotSheet extends StatelessWidget {
 
             // ================= SEND BUTTON =================
             ElevatedButton.icon(
-              onPressed: () {
-                // TODO: connect chatbot logic
-              },
+              onPressed: _handleSend,
               icon: const Icon(Icons.send),
               label: const Text("Send"),
             ),
