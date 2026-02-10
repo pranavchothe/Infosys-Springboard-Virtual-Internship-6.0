@@ -266,11 +266,17 @@ class ResultScreen extends StatelessWidget {
                                     const Size(double.infinity, 50),
                               ),
                               onPressed: () {
+                                final String vin =
+                                    vehicle["vehicle_id_number"] ??
+                                    vehicle["vin"] ??
+                                    "N/A";
+
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) =>
-                                        CarHistoryScreen(result: result),
+                                    builder: (_) => CarHistoryScreen(
+                                      vin: vin,
+                                    ),
                                   ),
                                 );
                               },
