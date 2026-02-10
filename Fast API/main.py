@@ -316,16 +316,46 @@ def get_car_full_history(
     result = service.fetch_full_history(request.vin)
     return result
 
+@app.get("/lease/{lease_id}")
+def get_lease_by_id(
+    lease_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    record = (
+        db.query(LeaseAnalysis)
+        .filter(
+            LeaseAnalysis.id == lease_id,
+            LeaseAnalysis.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not record:
+        raise HTTPException(status_code=404, detail="Lease not found")
+
+    return {
+        "id": record.id,
+        "filename": record.filename,
+        "vin": record.vin,
+        "analysis_result": record.analysis_result,
+        "fairness_analysis": record.fairness_analysis,
+        "vehicle_api_data": record.vehicle_api_data,
+        "car_full_history": record.car_full_history,
+    }
+
+
 # JWT protected history
 @app.get("/history")
-def get_history(
-    db: Session = Depends(get_db),
+def get_lease_history(
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     records = (
         db.query(LeaseAnalysis)
         .filter(LeaseAnalysis.user_id == current_user.id)
         .order_by(LeaseAnalysis.created_at.desc())
+        .limit(5)
         .all()
     )
 
@@ -333,11 +363,23 @@ def get_history(
     {
         "id": r.id,
         "filename": r.filename,
-        "analysis_result": r.analysis_result,
-        "fairness_analysis": r.fairness_analysis,
-        "car_full_history": r.car_full_history,
         "vin": r.vin,
+        "fairness_score": (
+            r.fairness_analysis.get("fairness_score")
+            if r.fairness_analysis is not None
+            else None
+        ),
+        "maker": (
+            r.analysis_result.get("vehicle_details", {}).get("maker")
+            if r.analysis_result is not None
+            else None
+        ),
+        "model": (
+            r.analysis_result.get("vehicle_details", {}).get("model")
+            if r.analysis_result is not None
+            else None
+        ),
         "created_at": r.created_at.isoformat(),
     }
     for r in records
-    ]
+]
