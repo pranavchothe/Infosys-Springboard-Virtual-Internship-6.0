@@ -11,14 +11,24 @@ dependencies:
   flutter:
     sdk: flutter
 
+  cupertino_icons: ^1.0.6
+  animations: ^2.0.11
   http: ^1.2.0
   file_picker: ^6.1.1
+  syncfusion_flutter_pdfviewer: ^24.1.41
   provider: ^6.1.0
   shared_preferences: ^2.2.2
+  syncfusion_flutter_gauges: ^24.1.41
+  pdf: ^3.10.7
+  printing: ^5.12.0
+
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
+
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/
