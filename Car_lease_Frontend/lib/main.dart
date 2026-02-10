@@ -3,11 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/home_screen.dart';
-import 'screens/history_screen.dart';
-import 'screens/profile_screen.dart';
 import 'screens/login_screen.dart';
-import 'widgets/app_bottom_nav.dart';
-
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +30,6 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0E1A1F),
-
         primaryColor: const Color(0xFF2575FC),
 
         appBarTheme: const AppBarTheme(
@@ -80,6 +75,7 @@ class MyApp extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.white70),
       ),
 
+      // SINGLE ENTRY POINT
       home: const AuthGate(),
     );
   }
@@ -120,52 +116,9 @@ class _AuthGateState extends State<AuthGate> {
       );
     }
 
-    return loggedIn ? const MainShell() : const LoginScreen();
-  }
-}
-
-class MainShell extends StatefulWidget {
-  const MainShell({super.key});
-
-  @override
-  State<MainShell> createState() => _MainShellState();
-}
-
-class _MainShellState extends State<MainShell> {
-  int currentIndex = 0;
-
-  final pages = const [
-    HomeScreen(),
-    HistoryScreen(), // ALL uploads (intentional)
-    ProfileScreen(),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      body: pages[currentIndex],
-
-      bottomNavigationBar: AppBottomNav(
-        currentIndex: currentIndex,
-        onTap: (index) => setState(() => currentIndex = index),
-      ),
-
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: theme.primaryColor,
-        child: const Icon(Icons.chat),
-        onPressed: () {
-          // Chatbot requires context → show info instead
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "Open a lease from History or Results to chat about it",
-              ),
-            ),
-          );
-        },
-      ),
-    );
+    // LOGIN → HOME (wrapped with global chatbot)
+    return loggedIn
+        ? const HomeScreen()
+        : const LoginScreen();  
   }
 }
