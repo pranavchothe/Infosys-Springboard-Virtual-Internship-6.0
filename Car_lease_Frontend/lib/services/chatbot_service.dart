@@ -15,7 +15,7 @@ class ChatBotService {
     if (raw.contains("lease")) cmd = "4";
     if (raw.contains("buy")) cmd = "5";
 
-    // NOT LOGGED IN
+    // ================= NOT LOGGED IN =================
     if (!ChatBotContext.isLoggedIn) {
       if (cmd == "login") {
         return "🔐 How to login:\n"
@@ -37,7 +37,7 @@ class ChatBotService {
           "• Type `register`";
     }
 
-    // LOGGED IN BUT NO CAR HISTORY
+    // ================= LOGGED IN BUT NO CAR =================
     if (!ChatBotContext.hasCar()) {
       if (cmd == "history") {
         return "👉 Please enter a VIN on the screen and click **Check Car History**.";
@@ -52,15 +52,28 @@ class ChatBotService {
           "• Lease advice";
     }
 
-    // CAR HISTORY AVAILABLE
+    // ================= CAR HISTORY AVAILABLE =================
     final car = ChatBotContext.currentCar!;
+
     final int year =
-        int.tryParse(car['year'].toString()) ?? DateTime.now().year;
-    final int owners = car['owners'];
-    final bool accident = car['accidental'];
-    final bool flood = car['flood_damage'];
-    final int claims = car['insurance_claims'];
-    final String status = car['status'];
+        int.tryParse(car['year']?.toString() ?? '') ??
+            DateTime.now().year;
+
+    final int owners =
+        int.tryParse(car['owners']?.toString() ?? '') ?? 0;
+
+    final bool accident =
+        car['accidental'] == true;
+
+    final bool flood =
+        car['flood_damage'] == true;
+
+    final int claims =
+        int.tryParse(car['insurance_claims']?.toString() ?? '') ?? 0;
+
+    final String status =
+        car['status']?.toString() ?? "Unknown";
+
     final int age = DateTime.now().year - year;
 
     if (cmd == "1") {
