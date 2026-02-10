@@ -2,18 +2,26 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 class FilePickerWidget extends StatelessWidget {
-  final Function(String) onFileSelected;
+  final ValueChanged<String> onFileSelected;
 
-  const FilePickerWidget({super.key, required this.onFileSelected});
+  const FilePickerWidget({
+    super.key,
+    required this.onFileSelected,
+  });
 
   Future<void> pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
+    final FilePickerResult? result =
+        await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
     );
 
-    if (result != null) {
-      onFileSelected(result.files.single.path!);
+    if (result == null) return;
+
+    final file = result.files.single;
+
+    if (file.path != null) {
+      onFileSelected(file.path!);
     }
   }
 

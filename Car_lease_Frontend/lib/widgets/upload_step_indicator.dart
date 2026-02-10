@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 class UploadStepIndicator extends StatelessWidget {
   final int currentStep;
 
-  const UploadStepIndicator({super.key, required this.currentStep});
+  const UploadStepIndicator({
+    super.key,
+    required this.currentStep,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -14,10 +17,14 @@ class UploadStepIndicator extends StatelessWidget {
       "Detecting risks & penalties",
     ];
 
+    // Clamp step to valid range
+    final int safeStep =
+        currentStep.clamp(0, steps.length - 1);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: List.generate(steps.length, (index) {
-        final active = index <= currentStep;
+        final active = index <= safeStep;
 
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -32,7 +39,11 @@ class UploadStepIndicator extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: active
-                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                    ? const Icon(
+                        Icons.check,
+                        size: 14,
+                        color: Colors.white,
+                      )
                     : null,
               ),
               const SizedBox(width: 12),
@@ -40,7 +51,9 @@ class UploadStepIndicator extends StatelessWidget {
                 steps[index],
                 style: TextStyle(
                   fontSize: 16,
-                  color: active ? Colors.lightGreenAccent : Colors.grey,
+                  color: active
+                      ? Colors.lightGreenAccent
+                      : Colors.grey,
                   fontWeight:
                       active ? FontWeight.w600 : FontWeight.normal,
                 ),

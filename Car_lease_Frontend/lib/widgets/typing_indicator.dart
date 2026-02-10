@@ -9,7 +9,7 @@ class TypingIndicator extends StatefulWidget {
 
 class _TypingIndicatorState extends State<TypingIndicator>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+  late final AnimationController _controller;
 
   @override
   void initState() {
@@ -31,7 +31,9 @@ class _TypingIndicatorState extends State<TypingIndicator>
     return AnimatedBuilder(
       animation: _controller,
       builder: (_, __) {
-        final int dotCount = (_controller.value * 3).floor() + 1;
+        final int dotCount =
+            ((_controller.value * 3).floor() + 1).clamp(1, 3);
+
         return Text(
           "●" * dotCount,
           style: const TextStyle(

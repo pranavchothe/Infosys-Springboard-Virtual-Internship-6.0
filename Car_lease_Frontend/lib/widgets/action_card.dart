@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class ActionCard extends StatelessWidget {
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
 
   const ActionCard({
     super.key,
     required this.icon,
     required this.label,
+    this.onTap,
   });
 
   @override
@@ -19,11 +21,15 @@ class ActionCard extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {},
+        onTap: onTap,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 36, color: Colors.blue),
+            Icon(
+              icon,
+              size: 36,
+              color: Colors.blue,
+            ),
             const SizedBox(height: 10),
             Text(
               label,
