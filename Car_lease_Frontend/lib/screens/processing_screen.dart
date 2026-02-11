@@ -113,24 +113,33 @@ class _ProcessingDialogState extends State<ProcessingDialog>
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
-                              CircularProgressIndicator(
-                                value: (widget.currentStep + 1) / 4,
-                                strokeWidth: 8,
-                                backgroundColor: Colors.white12,
-                                valueColor:
-                                    const AlwaysStoppedAnimation<Color>(
-                                  Color(0xFF38BDF8),
+                              SizedBox(
+                                height: 140,
+                                width: 140,
+                                child: CircularProgressIndicator(
+                                  value: (widget.currentStep + 1) / 4,
+                                  strokeWidth: 6, // ⬅ thinner
+                                  backgroundColor: Colors.white12,
+                                  valueColor: const AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF38BDF8),
+                                  ),
                                 ),
                               ),
-                              const Icon(
-                                Icons.description_outlined,
-                                size: 54,
-                                color: Color(0xFF38BDF8),
+                              Container(
+                                padding: const EdgeInsets.all(16), // ⬅ creates separation
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.black.withOpacity(0.35),
+                                ),
+                                child: const Icon(
+                                  Icons.description_outlined,
+                                  size: 40, // ⬅ smaller icon
+                                  color: Color(0xFF38BDF8),
+                                ),
                               ),
                             ],
                           ),
                         ),
-
                         const SizedBox(height: 30),
 
                         const Text(

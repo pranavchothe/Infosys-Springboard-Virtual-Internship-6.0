@@ -195,7 +195,7 @@ class _UploadScreenState extends State<UploadScreen> {
                           ElevatedButton(
                             onPressed: _pickPdf,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFDC2626),
+                              backgroundColor: const Color(0xFFE11D48),
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 28, vertical: 14),
                               shape: RoundedRectangleBorder(
@@ -265,7 +265,7 @@ class _UploadScreenState extends State<UploadScreen> {
                       child: ElevatedButton(
                         onPressed: _sendPdfToBackend,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFDC2626),
+                          backgroundColor: const Color(0xFFE11D48),
                           padding:
                               const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(

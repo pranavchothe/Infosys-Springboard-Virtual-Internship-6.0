@@ -9,7 +9,7 @@ import 'home_screen.dart';
 import '../services/auth_service.dart';
 import 'car_history_screen.dart';
 import '../widgets/ai_chatbot.dart';
-
+import 'dealer_chat_screen.dart';
 
 
 class ResultScreen extends StatelessWidget {
@@ -125,6 +125,7 @@ class ResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint("FAIRNESS ANALYSIS → ${result["fairness_analysis"]}");
     final Map<String, dynamic> lease =
         Map<String, dynamic>.from(result["analysis_result"] ?? {});
     final Map<String, dynamic> leaseDetails =
@@ -144,7 +145,9 @@ class ResultScreen extends StatelessWidget {
             : 0;
 
     final String fairnessVerdict =
-        fairness["classification"]?.toString() ?? "Unknown";
+        fairness["fairness_verdict"]?.toString()
+        ?? fairness["classification"]?.toString()
+        ?? "Unknown";
 
     final parties = lease["parties"] ?? {};
     final lessor = _safeString(parties["lessor"]);
@@ -261,7 +264,7 @@ class ResultScreen extends StatelessWidget {
 
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color.fromARGB(255, 255, 0, 0),
+                                backgroundColor: const Color(0xFFE11D48),
                                 minimumSize:
                                     const Size(double.infinity, 50),
                               ),
@@ -282,6 +285,26 @@ class ResultScreen extends StatelessWidget {
                               },
                               child: const Text("View Car Full History"),
                             ),
+
+                            const SizedBox(height: 12),
+
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF25D366),
+                                  minimumSize: const Size(double.infinity, 50),
+                                ),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => DealerChatScreen(
+                                        leaseId: result["record_id"], 
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: const Text("Chat with Dealer"),
+                              ),
 
                             const SizedBox(height: 12),
 
@@ -324,6 +347,7 @@ class ResultScreen extends StatelessWidget {
       ),
     );
   }
+  
 
   /// TOP BAR
 Widget _topBar(BuildContext context) {
@@ -355,8 +379,8 @@ Widget _topBar(BuildContext context) {
             foregroundColor: Colors.white,
             elevation: 0,
             padding: const EdgeInsets.symmetric(
-              horizontal: 20, // width
-              vertical: 10,   // height
+              horizontal: 20, 
+              vertical: 10,   
             ),
             minimumSize: const Size(0, 36), 
             shape: RoundedRectangleBorder(
@@ -394,7 +418,7 @@ Widget _topBar(BuildContext context) {
   );
 }
 
-  /// 🔹 FAIRNESS GAUGE (GLASS)
+  /// FAIRNESS GAUGE (GLASS)
   Widget _fairnessGauge({
     required double score,
     required String verdict,
@@ -470,7 +494,7 @@ Widget _topBar(BuildContext context) {
     );
   }
 
-  /// 🔹 GLASS SECTION TITLE
+  /// GLASS SECTION TITLE
   Widget _section(String title) {
     return Padding(
       padding: const EdgeInsets.only(top: 24, bottom: 10),
@@ -482,19 +506,19 @@ Widget _topBar(BuildContext context) {
     );
   }
 
-  /// 🔹 GLASS TILE
-  Widget _glassTile(IconData icon, String label, String? value) {
+  /// GLASS TILE
+  Widget _glassTile(IconData icon, String label, dynamic value) {
     return _glassContainer(
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFFDC2626)),
+          Icon(icon, color: const Color(0xFFE11D48)),
           const SizedBox(width: 12),
           Expanded(
             child: Text(label,
                 style: const TextStyle(color: Colors.white70)),
           ),
           Text(
-            value ?? "Not available",
+            value?.toString() ?? "Not available",
             style: const TextStyle(color: Colors.white),
           ),
         ],
@@ -502,7 +526,7 @@ Widget _topBar(BuildContext context) {
     );
   }
 
-  /// 🔹 GLASS CONTAINER
+  /// GLASS CONTAINER
   Widget _glassContainer({required Widget child}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
