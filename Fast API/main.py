@@ -19,6 +19,7 @@ from vin_utils import decode_vin
 from schemas import CarFullHistoryRequest, CarFullHistoryResponse
 from services.car_full_history_service import CarFullHistoryService
 from ai_chat import router as ai_chat_router
+from routes.dealer_chat import router as dealer_chat_router
 
 # Create DB tables
 Base.metadata.create_all(bind=engine)
@@ -32,7 +33,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+app.include_router(dealer_chat_router, tags=["Dealer Chat"])
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(ai_chat_router, prefix="/chatbot", tags=["chatbot"])
 

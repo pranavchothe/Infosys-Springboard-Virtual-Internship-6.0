@@ -16,6 +16,30 @@ def calculate_fairness(analysis_json: dict) -> dict:
         score -= 5
         red_flags.append("Several penalties are defined in the contract.")
 
+    # 1.5 TERMINATION COST SEVERITY
+    termination_fee = penalties.get("early_termination_charge")
+
+    try:
+        fee_val = float(
+            str(termination_fee)
+            .replace("INR", "")
+            .replace(",", "")
+            .strip()
+        )
+
+        if fee_val >= 200000:
+            score -= 20
+            red_flags.append("Extremely high early termination charge.")
+        elif fee_val >= 100000:
+            score -= 12
+            red_flags.append("High early termination charge.")
+        elif fee_val <= 25000:
+            score += 5  # 👈 reward fair contracts
+    except:
+        pass
+
+
+
     # 2. CONTRACT CLARITY (DATES)
     if not lease_details.get("start_date"):
         score -= 5
@@ -42,6 +66,24 @@ def calculate_fairness(analysis_json: dict) -> dict:
     except:
         pass
 
+    # 3.5 LEASE DURATION FAIRNESS
+    duration = lease_details.get("lease_duration")
+
+    try:
+        duration_val = int(str(duration).split()[0])
+
+        if duration_val >= 60:
+            score -= 15
+            red_flags.append("Very long lease duration significantly reduces flexibility.")
+        elif duration_val >= 48:
+            score -= 10
+            red_flags.append("Long lease duration reduces flexibility.")
+        elif duration_val <= 24:
+            score += 5  
+    except:
+        pass
+
+
     # 4. TERMINATION FAIRNESS
     if "sole discretion of lessor" in termination_clause or "lessee may not terminate" in termination_clause:
         score -= 15
@@ -60,6 +102,9 @@ def calculate_fairness(analysis_json: dict) -> dict:
         red_flags.append("No cooling-off period mentioned for contract cancellation.")
 
     # FINAL SCORE
+
+    score = max(0, min(score, 100))
+
     if score < 0:
         score = 0
 
