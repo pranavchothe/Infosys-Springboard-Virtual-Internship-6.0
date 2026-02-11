@@ -1,140 +1,246 @@
-🚗 Car Lease AI – Analysis & Negotiation Assistant
+🚗 Car Lease Analysis & Negotiation Assistant (AI-Powered)
 
-Infosys Springboard Virtual Internship 6.0 – Project Submission
+An end-to-end AI-driven car lease analysis platform that allows users to upload lease documents, analyze fairness and risks, view VIN-based vehicle history, and negotiate lease terms with an AI dealer chatbot (WhatsApp-style experience).
 
-An intelligent, mobile-first application that helps users analyze car lease offers and negotiate better deals using AI-driven insights.
-The system combines a Flutter frontend, FastAPI backend, and an AI negotiation chatbot to deliver a modern, professional user experience.
-
-📌 Project Overview
-
-Car leasing often involves complex financial terms, hidden charges, and difficult negotiations.
-This project simplifies the process by:
-
-Analyzing lease terms
-
-Highlighting unfair conditions
-
-Assisting users with AI-powered negotiation
-
-Maintaining complete lease and negotiation history
-
-The application is designed with a clean UI, mobile-first approach, and real-world usability in mind.
+Built using Flutter (Frontend), FastAPI (Backend), SQLAlchemy, MySQL, and Groq LLM API (Free).
 
 ✨ Key Features
+📄 Lease Analysis
 
-🔍 Lease Analysis
+Upload car lease documents
 
-Breakdown of monthly payments, tenure, interest, and total cost
+Extract structured lease details
 
-Detection of unfavorable clauses
+Analyze:
 
-🤖 AI Negotiation Chatbot
+Monthly payments
 
-Simulates real-world negotiation
+Penalties
 
-Suggests counter-offers and negotiation strategies
+Termination clauses
 
-Conversational and user-friendly
+Hidden risks
 
-📜 Lease History Tracking
+Generate a Fairness Score (0–100) with explanations
 
-Stores past lease analyses
+🚘 VIN-Based Vehicle Intelligence
 
-Enables review and comparison
+VIN extraction from lease
 
-📄 Lease Document Handling
+Vehicle details (make, model, year, body type, color)
 
-Generates structured lease summaries
+Car history:
 
-Supports realistic lease agreement formats
+Ownership
 
-📱 Modern Mobile UI
+Accidents
 
-Premium Flutter UI
+Insurance claims
 
-Responsive & intuitive design
+Flood / theft records
 
-Smooth navigation and animations
+🤝 AI Dealer Chatbot (Negotiation Assistant)
+
+WhatsApp-style chat UI
+
+User negotiates directly with an AI car dealer
+
+AI responses are:
+
+Context-aware (lease + fairness + vehicle)
+
+VIN-aware (VIN revealed only if user asks)
+
+Professional and realistic
+
+Full chat history saved per lease (VIN-linked)
+
+🧠 Smart Fairness Engine
+
+Detects:
+
+Excessive penalties
+
+Missing insurance clauses
+
+One-sided termination terms
+
+Lack of cooling-off period
+
+Produces:
+
+Fairness score
+
+Verdict (Fair / Moderate / Unfair)
+
+Red-flag explanations
+
+📊 Reports & UI
+
+Interactive fairness gauge
+
+Downloadable PDF lease report
+
+Modern glassmorphism UI
+
+Dark, premium design
 
 🛠️ Tech Stack
 Frontend
 
-Flutter
+Flutter (Dart)
 
-Dart
+Material UI
 
-Material UI (Custom Theming)
+Syncfusion Gauges
+
+REST API integration
 
 Backend
 
-FastAPI
+FastAPI (Python)
 
-Python
+SQLAlchemy ORM
 
-RESTful APIs
+MySQL
 
-AI & Logic
+JWT Authentication
 
-AI-based negotiation logic
+Groq LLM API (Free Tier)
 
-Rule-based + conversational responses
+AI / NLP
 
-Database / Storage
+Groq API
 
-History & user data storage (API-driven)
+LLaMA-3.1-8B-Instant model
 
-🏗️ Project Architecture
-Car-Lease-AI-Project/
- ├── frontend/           # Flutter mobile application
- ├── backend/            # FastAPI backend
- ├── services/           # API & business logic
- ├── assets/             # Images, icons, UI assets
- ├── README.md           # Project documentation
- └── requirements.txt    # Backend dependencies
+Prompt-engineered dealer negotiation logic
 
-🚀 How to Run the Project
-🔹 Backend (FastAPI)
-cd backend
+📂 Project Structure
+├── frontend/
+│   ├── lib/
+│   │   ├── screens/
+│   │   ├── widgets/
+│   │   ├── services/
+│   │   └── main.dart
+│
+├── backend/
+│   ├── main.py
+│   ├── database.py
+│   ├── models.py
+│   ├── auth.py
+│   ├── fairness_utils.py
+│   ├── external_ai.py
+│   ├── routes/
+│   │   ├── dealer_chat.py
+│   │   └── car_history.py
+│
+└── README.md
+
+⚙️ Backend Setup
+1️⃣ Clone Repository
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name/backend
+
+2️⃣ Create Virtual Environment
+python -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+
+3️⃣ Install Dependencies
 pip install -r requirements.txt
+
+4️⃣ Environment Variables
+
+Create .env file:
+
+DATABASE_URL=mysql+pymysql://user:password@localhost/car_lease_db
+GROQ_API_KEY=your_groq_api_key
+SECRET_KEY=your_jwt_secret
+
+5️⃣ Run Server
 uvicorn main:app --reload
 
 
-API will run at:
+Backend will run at:
 
 http://127.0.0.1:8000
 
-🔹 Frontend (Flutter)
-cd frontend
-flutter pub get
-flutter run
+📱 Frontend Setup (Flutter)
+- cd frontend
+- flutter pub get
+- flutter run
 
-📊 Use Case Scenarios
 
-Users evaluating a new car lease offer
+For Android emulator, backend base URL:
 
-First-time car leasers needing guidance
+http://10.0.2.2:8000
 
-Users negotiating with dealers
+🔐 Authentication
 
-Comparing multiple lease options
+- JWT-based login & register
 
-🎯 Internship Learning Outcomes
+- Secure API endpoints
 
-Practical application of Flutter & FastAPI
+- User-specific lease & chat history
 
-API integration and client-server architecture
+💬 Dealer Chat API
+POST – Send Message
+POST /dealer-chat
 
-AI-assisted decision support systems
+{
+  "lease_id": 1,
+  "message": "The early termination charge seems very high"
+}
 
-Clean UI/UX principles
+GET – Chat History
+GET /dealer-chat/{lease_id}
 
-Real-world problem solving
+🧠 Fairness Scoring Logic
 
-🧑‍💻 Author
+- Score starts at 100
 
-Pranav Chothe
-Infosys Springboard Virtual Internship 6.0
+- Deductions applied based on:
 
-📜 License
+- Penalty count
 
-This project is created for educational and internship evaluation purposes under the Infosys Springboard Virtual Internship Program.
+- Payment opacity
+
+- Termination bias
+
+- Missing consumer protections
+
+Verdict:
+
+- 80–100 → Fair
+
+- 60–79 → Moderate
+
+- <60 → Unfair
+
+🚀 Why This Project Stands Out
+
+- Real-world problem solving
+
+- End-to-end system (UI + Backend + AI)
+
+- No paid AI dependency (Groq Free Tier)
+
+- Production-grade architecture
+
+-Negotiation logic, not just Q&A
+
+👤 Author
+
+- Pranav Chothe
+
+- Built as part of an advanced AI-powered car lease analysis & negotiation system.
+
+⭐ Support
+
+-If you found this project useful:
+
+  ⭐ Star the repository
+
+  🍴 Fork it
+
+  🧠 Suggest improvements
