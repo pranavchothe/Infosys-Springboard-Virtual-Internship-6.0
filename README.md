@@ -1,120 +1,120 @@
 🚗 Car Lease Analysis & Negotiation Assistant (AI-Powered)
 
-An end-to-end AI-driven car lease analysis platform that allows users to upload lease documents, analyze fairness and risks, view VIN-based vehicle history, and negotiate lease terms with an AI dealer chatbot (WhatsApp-style experience).
+- An end-to-end AI-driven car lease analysis platform that allows users to upload lease documents, analyze fairness and risks, view VIN-based vehicle history, and negotiate lease terms with an AI dealer chatbot  (WhatsApp-style experience).
 
-Built using Flutter (Frontend), FastAPI (Backend), SQLAlchemy, MySQL, and Groq LLM API (Free).
+- Built using Flutter (Frontend), FastAPI (Backend), SQLAlchemy, MySQL, and Groq LLM API (Free).
 
-✨ Key Features
+✨ Key Features:
 📄 Lease Analysis
 
-Upload car lease documents
+- Upload car lease documents
 
-Extract structured lease details
+- Extract structured lease details
 
-Analyze:
+- Analyze:
 
-Monthly payments
+- Monthly payments
 
-Penalties
+- Penalties
 
-Termination clauses
+- Termination clauses
 
-Hidden risks
+- Hidden risks
 
-Generate a Fairness Score (0–100) with explanations
+- Generate a Fairness Score (0–100) with explanations
 
 🚘 VIN-Based Vehicle Intelligence
 
-VIN extraction from lease
+- VIN extraction from lease
 
-Vehicle details (make, model, year, body type, color)
+- Vehicle details (make, model, year, body type, color)
 
-Car history:
+- Car history:
 
-Ownership
+- Ownership
 
-Accidents
+- Accidents
 
-Insurance claims
+- Insurance claims
 
-Flood / theft records
+- Flood / theft records
 
 🤝 AI Dealer Chatbot (Negotiation Assistant)
 
-WhatsApp-style chat UI
+- WhatsApp-style chat UI
 
-User negotiates directly with an AI car dealer
+- User negotiates directly with an AI car dealer
 
-AI responses are:
+- AI responses are:
 
-Context-aware (lease + fairness + vehicle)
+- Context-aware (lease + fairness + vehicle)
 
-VIN-aware (VIN revealed only if user asks)
+- VIN-aware (VIN revealed only if user asks)
 
-Professional and realistic
+- Professional and realistic
 
-Full chat history saved per lease (VIN-linked)
+- Full chat history saved per lease (VIN-linked)
 
 🧠 Smart Fairness Engine
 
-Detects:
+- Detects:
 
-Excessive penalties
+-- Excessive penalties
 
-Missing insurance clauses
+-- Missing insurance clauses
 
-One-sided termination terms
+-- One-sided termination terms
 
-Lack of cooling-off period
+-- Lack of cooling-off period
 
-Produces:
+- Produces:
 
-Fairness score
+-- Fairness score
 
-Verdict (Fair / Moderate / Unfair)
+-- Verdict (Fair / Moderate / Unfair)
 
-Red-flag explanations
+-- Red-flag explanations
 
 📊 Reports & UI
 
-Interactive fairness gauge
+- Interactive fairness gauge
 
-Downloadable PDF lease report
+- Downloadable PDF lease report
 
-Modern glassmorphism UI
+- Modern glassmorphism UI
 
-Dark, premium design
+- Dark, premium design
 
 🛠️ Tech Stack
-Frontend
+- Frontend
 
-Flutter (Dart)
+-- Flutter (Dart)
 
-Material UI
+-- Material UI
 
-Syncfusion Gauges
+-- Syncfusion Gauges
 
-REST API integration
+-- REST API integration
 
-Backend
+- Backend
 
-FastAPI (Python)
+-- FastAPI (Python)
 
-SQLAlchemy ORM
+-- SQLAlchemy ORM
 
-MySQL
+- MySQL
 
-JWT Authentication
+-- JWT Authentication
 
-Groq LLM API (Free Tier)
+-- Groq LLM API (Free Tier)
 
-AI / NLP
+-- AI / NLP
 
-Groq API
+-- Groq API
 
-LLaMA-3.1-8B-Instant model
+-- LLaMA-3.1-8B-Instant model
 
-Prompt-engineered dealer negotiation logic
+-- Prompt-engineered dealer negotiation logic
 
 📂 Project Structure
 ├── frontend/
@@ -139,31 +139,31 @@ Prompt-engineered dealer negotiation logic
 
 ⚙️ Backend Setup
 1️⃣ Clone Repository
-git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name/backend
+    git clone https://github.com/your-username/your-repo-name.git
+    cd your-repo-name/backend
 
 2️⃣ Create Virtual Environment
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
+    python -m venv venv
+    source venv/bin/activate   # Windows: venv\Scripts\activate
 
 3️⃣ Install Dependencies
-pip install -r requirements.txt
+    pip install -r requirements.txt
 
 4️⃣ Environment Variables
 
-Create .env file:
+- Create .env file:
 
-DATABASE_URL=mysql+pymysql://user:password@localhost/car_lease_db
-GROQ_API_KEY=your_groq_api_key
-SECRET_KEY=your_jwt_secret
+  DATABASE_URL=mysql+pymysql://user:password@localhost/car_lease_db
+  GROQ_API_KEY=your_groq_api_key
+  SECRET_KEY=your_jwt_secret
 
 5️⃣ Run Server
-uvicorn main:app --reload
+  uvicorn main:app --reload
 
 
-Backend will run at:
+- Backend will run at:
 
-http://127.0.0.1:8000
+-- http://127.0.0.1:8000
 
 📱 Frontend Setup (Flutter)
 - cd frontend
@@ -171,9 +171,9 @@ http://127.0.0.1:8000
 - flutter run
 
 
-For Android emulator, backend base URL:
+- For Android emulator, backend base URL:
 
-http://10.0.2.2:8000
+-- http://10.0.2.2:8000
 
 🔐 Authentication
 
@@ -182,18 +182,6 @@ http://10.0.2.2:8000
 - Secure API endpoints
 
 - User-specific lease & chat history
-
-💬 Dealer Chat API
-POST – Send Message
-POST /dealer-chat
-
-{
-  "lease_id": 1,
-  "message": "The early termination charge seems very high"
-}
-
-GET – Chat History
-GET /dealer-chat/{lease_id}
 
 🧠 Fairness Scoring Logic
 
