@@ -206,7 +206,7 @@ class _AIChatBotState extends State<AIChatBot>
                     child: Row(
                       children: [
                         const Text(
-                          "AI Negotiation Assistant 🤖",
+                          "AI Assistant 🤖",
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
