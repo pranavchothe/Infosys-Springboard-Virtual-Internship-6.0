@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Python
 __pycache__/
 *.pyc
@@ -24,3 +25,22 @@ Car_Lease_Fast_API/uploads/
 
 # Zip files
 *.zip
+=======
+# Ignore Python virtual environment
+venv/
+.env/
+
+# Ignore generated output
+final_output/
+llm_json/
+
+# Ignore cache
+__pycache__/
+*.pyc
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+>>>>>>> 395992c3146aefe4d76e14a45beccb82ae2008ab
+# Flutter generated
+.flutter-plugins-dependencies
