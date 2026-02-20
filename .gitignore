@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+
+# IDE
+.idea/
+.vscode/
+
+# Flutter
+build/
+.dart_tool/
+.packages
+pubspec.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads
+Car_Lease_Fast_API/uploads/
+
+# Zip files
+*.zip
