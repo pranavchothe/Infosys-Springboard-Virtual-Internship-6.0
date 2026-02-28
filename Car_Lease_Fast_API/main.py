@@ -6,11 +6,11 @@ import shutil
 import os
 from fastapi.middleware.cors import CORSMiddleware
 from auth import router as auth_router
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from datetime import datetime
 from llm_utils import analyze_lease
 from database import SessionLocal, engine, Base
-from models import User, LeaseAnalysis
+from models import User, LeaseAnalysis, DealerChatMessage, DealerStatus, Dealer
 from auth import get_current_user
 from ocr_utils import extract_text
 from llm_utils import analyze_lease
@@ -425,6 +425,11 @@ def get_lease_history(
             else None
         ),
         "created_at": r.created_at.isoformat(),
+        "analysis_result": r.analysis_result,
+        "fairness_analysis": r.fairness_analysis,
+        "price_estimation": r.price_estimation,
+        "vehicle_api_data": r.vehicle_api_data,
+        "car_full_history": r.car_full_history,
     }
     for r in records
 ]

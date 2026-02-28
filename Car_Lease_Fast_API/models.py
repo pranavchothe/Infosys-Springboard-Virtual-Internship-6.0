@@ -66,7 +66,9 @@ class DealerChatMessage(Base):
 
     dealer_id = Column(Integer, ForeignKey("dealers.id"), nullable=True)
 
+    # Relationships
     lease = relationship("LeaseAnalysis", back_populates="dealer_chats")
+    dealer = relationship("Dealer", back_populates="chat_messages")
 
 # DEALER ONLINE STATUS
 class DealerStatus(Base):
@@ -84,3 +86,10 @@ class Dealer(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    chat_messages = relationship(
+        "DealerChatMessage",
+        back_populates="dealer",
+        cascade="all, delete-orphan"
+    )
+
