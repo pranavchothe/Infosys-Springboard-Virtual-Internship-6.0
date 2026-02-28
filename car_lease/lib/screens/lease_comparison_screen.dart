@@ -8,9 +8,14 @@ class LeaseComparisonScreen extends StatelessWidget {
     super.key,
     required this.leases,
   });
-
+  
   @override
   Widget build(BuildContext context) {
+
+     if (leases.isNotEmpty) {
+        print("DEBUG ANALYSIS DATA:");
+        print(leases.first.analysisData);
+      }
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -20,13 +25,30 @@ class LeaseComparisonScreen extends StatelessWidget {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
-          children: [
-            _row("VIN", (l) => l.vin),
-            _row("Status", (l) => l.status),
-            _row("Monthly Payment", (l) => "₹${l.monthlyPayment}"),
-            _row("Fairness Score", (l) => "${l.fairnessScore}%"),
-          ],
-        ),
+        children: [
+
+          _sectionTitle("Basic Info"),
+          _row("VIN", (l) => l.vin),
+          _row("Vehicle", (l) => "${l.maker} ${l.modelName} (${l.vehicleYear})"),
+          _row("Status", (l) => l.status),
+
+          _sectionTitle("Financial Comparison"),
+          _row("Base Monthly", (l) => l.baseMonthly),
+          _row("Total Monthly", (l) => l.totalMonthly),
+          _row("Total Payments", (l) => l.totalPayments),
+          _row("Residual Value", (l) => l.residualValue),
+          _row("Purchase Option", (l) => l.purchaseOption),
+
+          _sectionTitle("Lease Terms"),
+          _row("Lease Duration", (l) => l.leaseDuration),
+          _row("Payment Terms", (l) => l.paymentTerms),
+
+          _sectionTitle("Risk & Fairness"),
+          _row("Fairness Score", (l) => "${l.fairnessScore ?? 0}%"),
+          _row("Red Flags", (l) => l.redFlagCount.toString()),
+        ],
+      ),
+      
       ),
     );
   }
@@ -62,4 +84,22 @@ class LeaseComparisonScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _sectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 20, bottom: 10),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+  
 }
