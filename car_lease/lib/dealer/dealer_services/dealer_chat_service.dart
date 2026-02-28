@@ -148,5 +148,51 @@ class DealerChatService {
       },
     );
   }
+
+  static Future<List<String>> getAiSuggestion({
+    required int leaseId,
+    required String dealerMessage,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("access_token");
+
+    final response = await http.post(
+      Uri.parse("http://127.0.0.1:8000/dealer-chat/ai-suggestion"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "lease_id": leaseId,
+        "dealer_message": dealerMessage,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+
+      final raw = (data["suggestion"] ?? "").toString().trim();
+
+      print("AI RAW STRING CLEAN: $raw");
+
+      if (raw.isEmpty) return [];
+
+      // If single sentence (no new lines)
+      if (!raw.contains("\n")) {
+        return [raw.replaceAll('"', '')];
+      }
+
+      final lines = raw
+          .split("\n")
+          .map((e) => e.replaceAll(RegExp(r'^[•\-\*\d\.\s]+'), '').trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+
+      return lines;
+    }
+
+    return [];
+  }
+
 }
 
