@@ -29,6 +29,9 @@ class _DealerChatScreenState extends State<DealerChatScreen> {
 
   Timer? _pollingTimer;
   Timer? _statusTimer;
+  List<String> _aiSuggestions = [];
+  String? _lastDealerMessage;
+  bool _loadingAi = false;
 
   @override
   void initState() {
@@ -54,35 +57,34 @@ class _DealerChatScreenState extends State<DealerChatScreen> {
 
   Future<void> _loadHistory() async {
     try {
-      final history = await DealerChatService.loadHistory(widget.leaseId);  
-          if (widget.isDealer) {
-            await DealerChatService.markMessagesRead(widget.leaseId);
+      final history =
+          await DealerChatService.loadHistory(widget.leaseId);
+
+      if (mounted) {
+        final updatedMessages = history.map((h) => ChatMessage(
+              text: h["message"],
+              isUser: h["sender"] == "user",
+              timestamp: DateTime.parse(h["created_at"]),
+            )).toList();
+
+        setState(() {
+          _messages
+            ..clear()
+            ..addAll(updatedMessages);
+        });
+
+        // 🔥 Detect new dealer message
+        if (!widget.isDealer && _messages.isNotEmpty) {
+          final last = _messages.last;
+
+          if (!last.isUser) {
+            print("Triggering AI for dealer message");
+            _fetchAiSuggestion(last.text);
           }
-
-      final newMessages = history.map((h) {
-        return ChatMessage(
-          text: h["message"],
-          isUser: h["sender"] == "user",
-          timestamp: DateTime.parse(h["created_at"]),
-        );
-      }).toList();
-
-      // Only update if message count changed
-      if (newMessages.length != _messages.length) {
-        if (mounted) {
-          setState(() {
-            _messages
-              ..clear()
-              ..addAll(history.map((h) => ChatMessage(
-                text: h["message"],
-                isUser: h["sender"] == "user",
-                timestamp: DateTime.parse(h["created_at"]),
-              )));
-          });
         }
+
       }
 
-      // Mark unread user messages as read
       await DealerChatService.markMessagesRead(widget.leaseId);
 
     } catch (e) {
@@ -132,6 +134,42 @@ class _DealerChatScreenState extends State<DealerChatScreen> {
     },
   );
 }
+
+  Future<void> _fetchAiSuggestion(String dealerMessage) async {
+    if (widget.isDealer) return;
+
+    print("Fetching AI for message: $dealerMessage");
+
+    setState(() {
+      _loadingAi = true;
+    });
+
+    try {
+      final suggestions =
+          await DealerChatService.getAiSuggestion(
+        leaseId: widget.leaseId,
+        dealerMessage: dealerMessage,
+      );
+
+      print("AI Suggestions received: $suggestions");
+
+      if (mounted) {
+        setState(() {
+          _aiSuggestions = suggestions;
+          _loadingAi = false;
+        });
+      }
+    } catch (e) {
+      print("AI ERROR: $e");
+
+      if (mounted) {
+        setState(() {
+          _loadingAi = false;
+        });
+      }
+    }
+  }
+
 
   // SEND MESSAGE
   
@@ -235,7 +273,62 @@ class _DealerChatScreenState extends State<DealerChatScreen> {
                     },
                   ),
           ),
+
+          // ===== AI Panel (Customer Only) =====
+          if (!widget.isDealer)
+            _buildAiPanel(),
+            
           _inputBar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiPanel() {
+    if (_loadingAi) {
+      return const Padding(
+        padding: EdgeInsets.all(8),
+        child: LinearProgressIndicator(),
+      );
+    }
+
+    if (_aiSuggestions.isEmpty) {
+      return const SizedBox();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      color: const Color(0xFF16232A),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "AI Negotiation Assistant",
+            style: TextStyle(
+              color: Colors.greenAccent,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          ..._aiSuggestions.map((suggestion) {
+            return Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                ),
+                onPressed: () {
+                  _controller.text = suggestion;
+                },
+                child: Text(
+                  suggestion,
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+            );
+          }).toList(),
         ],
       ),
     );

@@ -91,7 +91,7 @@ class _DealerDashboardScreenState
                             ),
                             const SizedBox(height: 20),
 
-                            Expanded(  // ✅ ONLY ONE Expanded here
+                            Expanded(  
                               child: loading
                                   ? const Center(child: CircularProgressIndicator())
                                   : dashboardLeases.isEmpty
@@ -111,13 +111,27 @@ class _DealerDashboardScreenState
                                                 backgroundColor: Colors.grey,
                                                 child: Icon(Icons.person, color: Colors.white),
                                               ),
-                                              title: Text(
-                                                chat["vin"] ?? "Customer",
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                                              title: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    chat["customer_name"] ?? "Customer",
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    "VIN: ${chat["vin"] ?? ""}",
+                                                    style: const TextStyle(
+                                                      color: Colors.white54,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
+
                                               subtitle: Text(
                                                 chat["last_message"] ?? "",
                                                 maxLines: 1,
@@ -174,7 +188,7 @@ class _DealerDashboardScreenState
                               const SizedBox(height: 20),
 
                               dashboardLeases.isNotEmpty
-                              ? _chatPreviewCard(dashboardLeases.first["lease_id"])
+                              ? _chatPreviewCard(dashboardLeases.first)
                               : const SizedBox(),
 
 
@@ -202,20 +216,20 @@ class _DealerDashboardScreenState
 
   /// HEADER
  Widget _header() {
-  return Row(
+  return const Row(
     children: [
-      const Icon(Icons.dashboard, color: Colors.white, size: 26),
-      const SizedBox(width: 10),
-      const Text(
+      Icon(Icons.dashboard, color: Colors.white, size: 26),
+      SizedBox(width: 10),
+      Text(
         "Dealer Home",
         style: TextStyle(
             color: Colors.white,
             fontSize: 24,
             fontWeight: FontWeight.bold),
       ),
-      const Spacer(),
+      Spacer(),
       Stack(
-        children: const [
+        children: [
           Icon(Icons.notifications, color: Colors.white70),
           Positioned(
             right: 0,
@@ -325,7 +339,7 @@ class _DealerDashboardScreenState
   }
 
   /// CHAT PREVIEW CARD
-  Widget _chatPreviewCard(int leaseId) {
+  Widget _chatPreviewCard(Map<String, dynamic> chat) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: _glassDecoration(),
@@ -333,20 +347,19 @@ class _DealerDashboardScreenState
         children: [
           const CircleAvatar(
             radius: 35,
-            backgroundImage:
-                AssetImage("assets/images/avatar.png"),
+            backgroundImage: AssetImage("assets/images/avatar.png"),
           ),
           const SizedBox(height: 15),
-          const Text(
-            "Rahul Mehta",
-            style: TextStyle(
+          Text(
+            chat["customer_name"] ?? "Customer",
+            style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.bold),
           ),
-          const Text(
-            "ABCAutoleasePvt. Ltd.",
-            style: TextStyle(color: Colors.white70),
+          Text(
+            "VIN: ${chat["vin"] ?? ""}",
+            style: const TextStyle(color: Colors.white70),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -356,8 +369,7 @@ class _DealerDashboardScreenState
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.indigo,
                 shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(25),
+                  borderRadius: BorderRadius.circular(25),
                 ),
               ),
               onPressed: () {
@@ -365,7 +377,7 @@ class _DealerDashboardScreenState
                   context,
                   MaterialPageRoute(
                     builder: (_) => DealerChatScreen(
-                      leaseId: leaseId,
+                      leaseId: chat["lease_id"],
                       isDealer: true,
                     ),
                   ),
@@ -378,6 +390,7 @@ class _DealerDashboardScreenState
       ),
     );
   }
+
   
 
   /// GLASS EFFECT
