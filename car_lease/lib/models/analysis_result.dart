@@ -19,10 +19,12 @@ class AnalysisResult {
   });
 
   factory AnalysisResult.fromJson(Map<String, dynamic> json) {
-    final analysis = json['analysis_data'];
+    final analysisResult = json['analysis_result'] ?? {};
+    final financials = analysisResult['financials'] ?? {};
+    final fairness = json['fairness_analysis'] ?? {};
 
     return AnalysisResult(
-      id: json['id'],
+      id: json['record_id'] ?? json['id'],
       vin: json['vin'] ?? 'Unknown VIN',
       status: json['status'] ??
           json['analysis_status'] ??
@@ -30,12 +32,22 @@ class AnalysisResult {
       createdAt: DateTime.parse(
         json['created_at'] ?? json['createdAt'],
       ),
-      analysisData: analysis,
 
-      monthlyPayment: (analysis?['monthly_payment'] as num?)?.toDouble(),
-      fairnessScore: (analysis?['fairness_score'] as num?)?.toDouble(),
+      analysisData: json,
+
+      // FIXED EXTRACTION
+      monthlyPayment:
+          (financials['total_monthly_payment'] is num)
+              ? (financials['total_monthly_payment'] as num).toDouble()
+              : null,
+
+      fairnessScore:
+          (fairness['fairness_score'] is num)
+              ? (fairness['fairness_score'] as num).toDouble()
+              : null,
     );
   }
+
 
   Map<String, dynamic> toJson() {
     return {
@@ -50,4 +62,55 @@ class AnalysisResult {
       "car_full_history": analysisData?["car_full_history"],
     };
   }
+
+  Map<String, dynamic> get _analysisResult =>
+      analysisData?['analysis_result'] ?? {};
+
+  Map<String, dynamic> get _financials =>
+      _analysisResult['financials'] ?? {};
+
+  Map<String, dynamic> get _leaseDetails =>
+      _analysisResult['lease_details'] ?? {};
+
+  Map<String, dynamic> get _vehicleDetails =>
+      _analysisResult['vehicle_details'] ?? {};
+
+  Map<String, dynamic> get _fairness =>
+      analysisData?['fairness_analysis'] ?? {};
+
+  String get totalMonthly =>
+      _financials['total_monthly_payment']?.toString() ?? "N/A";
+
+  String get baseMonthly =>
+      _financials['base_monthly_payment']?.toString() ?? "N/A";
+
+  String get totalPayments =>
+      _financials['total_of_payments']?.toString() ?? "N/A";
+
+  String get residualValue =>
+      _financials['residual_value']?.toString() ?? "N/A";
+
+  String get purchaseOption =>
+      _financials['purchase_option_price']?.toString() ?? "N/A";
+
+  String get leaseDuration =>
+      _leaseDetails['lease_duration']?.toString() ?? "N/A";
+
+  String get paymentTerms =>
+      _leaseDetails['payment_terms']?.toString() ?? "N/A";
+
+  String get maker =>
+      _vehicleDetails['maker']?.toString() ??
+      _vehicleDetails['make']?.toString() ??
+      "N/A";
+
+  String get modelName =>
+      _vehicleDetails['model']?.toString() ?? "N/A";
+
+  String get vehicleYear =>
+      _vehicleDetails['year']?.toString() ?? "N/A";
+
+  int get redFlagCount =>
+      (_fairness['red_flags'] as List?)?.length ?? 0;
+
 }
